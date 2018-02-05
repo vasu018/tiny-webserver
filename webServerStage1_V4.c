@@ -22,7 +22,7 @@ char teamName[] = "";
 struct hostent *sDetail = 0;
 struct in_addr serveraddr;
 struct addrinfo details, *detailsptr, *p; // So no need to use memset global variables
-char host[256];
+char hostIP[256];
 void     sig_handler(int);
 
 void sig_handler(int signo)
@@ -32,11 +32,9 @@ void sig_handler(int signo)
         exit (0);
     }
 }
-
 void red () {
   printf("\033[1;31m");
 }
-
 void reset () {
   printf("\033[0m");
 }
@@ -69,7 +67,6 @@ int doParse(int clientfd2, const char *readBuff2, int recvBytes) {
     
     bzero(writeBuff, writeBuffSize);
     sprintf(writeBuff, readBuff2);
-       
     int numBytes, totalBytes;
 
     while (1) {
@@ -101,7 +98,6 @@ int doParse(int clientfd2, const char *readBuff2, int recvBytes) {
             wordslist1 = strtok (words, ":");
             while (wordslist1 != NULL) {
                 if (counter == 2) {
-                    //printf ("Firstline is:%s\n", wordslist1);
                     firstline = malloc (strlen(wordslist1)+6);
                     strcpy (firstline, "Host:");
                     strcat (firstline, wordslist1);
@@ -117,12 +113,10 @@ int doParse(int clientfd2, const char *readBuff2, int recvBytes) {
                     }
                     if (flag != 1) {
                         for(p = detailsptr; p != NULL; p = p->ai_next) {
-                            getnameinfo(p->ai_addr, p->ai_addrlen, host, sizeof(host), NULL, 0, NI_NUMERICHOST);
-                            printf ("%s\n",host);
+                            getnameinfo(p->ai_addr, p->ai_addrlen, hostIP, sizeof(hostIP), NULL, 0, NI_NUMERICHOST);
+                            printf ("%s\n",hostIP);
                         }
                     }
-
-                    //printf ("", details);
 
                     //sDetail = gethostbyname (wordslist1);
                     //if (!sDetail) {
@@ -150,11 +144,6 @@ int doParse(int clientfd2, const char *readBuff2, int recvBytes) {
     }
 
     int sendRet1, sendRet2, sendRet3;
-    //char testStr[] = "Testing this String varibale";
-    //char string2[] = "<html><body> <p style=\"color:#FF0000\";> </p> </body></html>";
-    //sendRet1 = send(clientfd2, string2, strlen(string2), 0);
-   
-
     char stringStart[] = "<html><body> <p style=\"color:#FF0000\";>";
     char stringbr1[] = "</br>";
     char stringbr2[] = "</br> </br>";
