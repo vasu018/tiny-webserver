@@ -23,12 +23,13 @@ struct hostent *sDetail = 0;
 struct in_addr serveraddr;
 struct addrinfo details, *detailsptr, *p; // So no need to use memset global variables
 char hostIP[256];
-void     sig_handler(int);
+void     sig_handler(int, int);
 
-void sig_handler(int signo)
+void sig_handler(int signo, int socketfd)
 {
     if (signo == SIGINT) {
         printf("Received Ctrl C to stop the Program. Terminating!!!\n");
+        shutdown (socketfd, 2);
         exit (0);
     }
 }
@@ -78,6 +79,7 @@ int doParse(int clientfd2, const char *readBuff2, int recvBytes) {
             break;
         }
     }
+
     
     char * firstline = NULL; /* Host IP */
     char * secondline = NULL; /* Port Number */
@@ -142,6 +144,14 @@ int doParse(int clientfd2, const char *readBuff2, int recvBytes) {
         }
         words = strtok (NULL,delimiter);
     }
+     
+    //if (strlen(wordslist3) > 65535) {
+	//if (strlen(thirdline_temp) - 14 > 535) {
+    //    int sendRet5 = send(clientfd2, "URL Length > 65,535. Disconnecting the connection !!!", strlen(thirdline), 0);
+    //    printf ("URL Length > 65,535. Disconnecting the connection !!!\n");
+	//	shutdown (clientfd2, 2);
+	//}
+		
 
     int sendRet1, sendRet2, sendRet3;
     char stringStart[] = "<html><body> <p style=\"color:#FF0000\";>";
