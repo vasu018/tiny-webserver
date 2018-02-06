@@ -12,7 +12,7 @@
     
 int writeBuffSize = 1024;
 char writeBuff[1024];
-int serverPort = 7001;
+int serverPort = 7000;
 
 
 int main(int argc, char *argv[])
