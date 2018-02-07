@@ -9,7 +9,7 @@
 #include <signal.h>
 
 // Global Variables
-int lport = 1024;
+int lport = 1025;
 int uport = 65535;
 int serverPort;
 int numConnServer = 27;
@@ -87,6 +87,7 @@ int doParse(int clientfd2, const char *readBuff2, int recvBytes) {
     char * thirdline = NULL; /* Path */
     char *words;
     char delimiter[] = "\r";
+    int flag = 0;
     words = strtok (writeBuff,delimiter);
     while (words) {
         if (strstr(words, "GET") != NULL) {
@@ -100,15 +101,14 @@ int doParse(int clientfd2, const char *readBuff2, int recvBytes) {
             wordslist1 = strtok (words, ":");
             while (wordslist1 != NULL) {
                 if (counter == 2) {
-                    firstline = malloc (strlen(wordslist1)+6);
-                    strcpy (firstline, "Host:");
-                    strcat (firstline, wordslist1);
+                    //firstline = malloc (strlen(wordslist1)+6);
+                    //strcpy (firstline, "HOST = ");
+                    //strcat (firstline, wordslist1);
                     
                     // Get serveraddr info
                     details.ai_family = AF_INET; // AF_INET means IPv4 only addresses
-                    int retGetaddr = getaddrinfo(firstline, NULL, &details, &detailsptr);
+                    int retGetaddr = getaddrinfo(wordslist1, NULL, &details, &detailsptr);
                     //int retGetaddr = getaddrinfo("afsconnect1.njit.edu", NULL, &details, &detailsptr);
-                    int flag = 0;
                     if (retGetaddr) {
                         //printf("Getaddrinfo: %d\n",retGetaddr);
                         flag =1;
@@ -116,10 +116,23 @@ int doParse(int clientfd2, const char *readBuff2, int recvBytes) {
                     if (flag != 1) {
                         for(p = detailsptr; p != NULL; p = p->ai_next) {
                             getnameinfo(p->ai_addr, p->ai_addrlen, hostIP, sizeof(hostIP), NULL, 0, NI_NUMERICHOST);
-                            printf ("%s\n",hostIP);
+                            printf ("Server IP: %s\n",hostIP);
                         }
                     }
-
+                    firstline = malloc (strlen(wordslist1)+25);
+                    strcpy (firstline, "HOST = ");
+                    strcat (firstline, wordslist1);
+                    if (flag != 1) {
+                        strcat (firstline, " (");
+                        strcat (firstline, hostIP);
+                        strcat (firstline, ")");
+                    }
+                    else {
+                        strcat (firstline, " (");
+                        strcat (firstline, "0.0.0.0");
+                        strcat (firstline, ")");
+                    }
+                    
                     //sDetail = gethostbyname (wordslist1);
                     //if (!sDetail) {
                     //    printf ("Error: Hostname can not be resolved\n");
@@ -135,7 +148,7 @@ int doParse(int clientfd2, const char *readBuff2, int recvBytes) {
                 if (counter == 3) {
                     //printf ("Secondline is: %s\n", wordslist1);
                     secondline = malloc (strlen(wordslist1));
-                    strcpy (secondline, "Port:");
+                    strcpy (secondline, "PORT = ");
                     strcat (secondline, wordslist1);
                 }
                 counter++;
@@ -190,7 +203,7 @@ int doParse(int clientfd2, const char *readBuff2, int recvBytes) {
         while (wordslist3 != NULL) {
             if (counter == 2) {
                 thirdline = malloc (strlen(wordslist3) + 6);
-                strcpy (thirdline, "Path:");
+                strcpy (thirdline, "PATH = ");
                 strcat (thirdline, wordslist3);
             }
             counter++;
@@ -220,8 +233,8 @@ int main (int argc, char *argv[]) {
         return(0);
     } 
     
-    printf("\n* stage 1 program by (PG355) listening on port (%d) * \n", serverPort);
-    printf("* Ctl-C  ## To graciously stop the server\n");
+    printf("stage 1 program by (PG355) listening on port (%d)  \n", serverPort);
+    printf("\n * ### Press Ctl-C  To graciously stop the server ###\n");
 
     /* Create the Server Socket. */
     struct sockaddr_in server_sock;
