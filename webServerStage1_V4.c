@@ -219,6 +219,9 @@ int main (int argc, char *argv[]) {
         printf ("Invalid Port: %s\n", argv[1]);
         return(0);
     } 
+    
+    printf("\n* stage 1 program by (PG355) listening on port (%d) * \n", serverPort);
+    printf("* Ctl-C  ## To graciously stop the server\n");
 
     /* Create the Server Socket. */
     struct sockaddr_in server_sock;
