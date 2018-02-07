@@ -144,20 +144,24 @@ int doParse(int clientfd2, const char *readBuff2, int recvBytes) {
         }
         words = strtok (NULL,delimiter);
     }
-     
+    /* FIX IT: This piece of code need to be properly invoked before pushing any data to the server.*/  
     //if (strlen(wordslist3) > 65535) {
-	//if (strlen(thirdline_temp) - 14 > 535) {
+	////if (strlen(thirdline_temp) - 14 > 535) {
     //    int sendRet5 = send(clientfd2, "URL Length > 65,535. Disconnecting the connection !!!", strlen(thirdline), 0);
     //    printf ("URL Length > 65,535. Disconnecting the connection !!!\n");
 	//	shutdown (clientfd2, 2);
 	//}
 		
-
     int sendRet1, sendRet2, sendRet3;
-    char stringStart[] = "<html><body> <p style=\"color:#FF0000\";>";
-    char stringbr1[] = "</br>";
-    char stringbr2[] = "</br> </br>";
-    char stringEnd[] = "</p> </body></html>";
+    char stringStart[] = "";
+    char stringbr1[] = "<style>body{color:black} span{color:#FF0000}</style></br>";
+    char stringbr2[] = "<span></br> </br>";
+    char stringEnd[] = "</span>";
+
+    //char stringStart[] = "<html><body> <p style=\"color:#FF0000\";>";
+    //char stringbr1[] = "</br>";
+    //char stringbr2[] = "</br> </br>";
+    //char stringEnd[] = "</p> </body></html>";
     sendRet1 = send(clientfd2, stringbr2, strlen(stringbr2), 0);
     if (firstline != NULL) {
         printf ("%s\n", firstline);
