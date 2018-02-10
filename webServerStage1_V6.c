@@ -185,10 +185,7 @@ int doParse(int clientfd2, const char *readBuff2, int recvBytes) {
             if (sendRet3 < 0) {
                 printf ("Error Sending Path: %d", sendRet3);
             }
-            free (thirdline);
-        }
-        if (thirdline_temp != NULL) {
-            free (thirdline_temp);
+            //free (thirdline);
         }
     }
     return 0;
