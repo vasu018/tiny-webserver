@@ -8,9 +8,7 @@
 #include <arpa/inet.h>
 #include <signal.h>
 
-//
 // Global Variables
-//
 int lport = 1025;
 int uport = 65535;
 int serverPort;
@@ -35,12 +33,6 @@ void sig_handler(int signo, int socketfd)
         exit (0);
     }
 }
-void red () {
-  printf("\033[1;31m");
-}
-void reset () {
-  printf("\033[0m");
-}
 
 /* Send 200 Code to client if successfully processed GET request from client*/
 int sendSuccess200msg (int recvfd3) {
@@ -61,7 +53,6 @@ int sendSuccess200msg (int recvfd3) {
 
 int doParse(int clientfd2, const char *readBuff2, int recvBytes) {
 
-    /* Send the Code 200 to client for successful*/
     int successRet;
     successRet = sendSuccess200msg (clientfd2);
     if (successRet != 0 ) {
@@ -74,14 +65,12 @@ int doParse(int clientfd2, const char *readBuff2, int recvBytes) {
 
     while (1) {
         numBytes = send(clientfd2, writeBuff, strlen(writeBuff), 0);
-        // Echo Back the request from the client
         printf ("%s", writeBuff);
         totalBytes = totalBytes + numBytes;
         if (totalBytes >= strlen(writeBuff)) {
             break;
         }
     }
-
     
     char * firstline = NULL; /* Host IP */
     char * secondline = NULL; /* Port Number */
@@ -98,21 +87,14 @@ int doParse(int clientfd2, const char *readBuff2, int recvBytes) {
         }
         if (strstr(words, "Host:") != NULL) {
             int counter = 1;
-            //printf("Matching Host: %s\n", words);
-            //const char *wordslist1;
             const char *wordslist1;
             wordslist1 = strtok (words, ":");
             while (wordslist1 != NULL) {
                 if (counter == 2) {
-                    //firstline = malloc (strlen(wordslist1)+6);
-                    //strcpy (firstline, "HOST = ");
-                    //strcat (firstline, wordslist1);
-
                     const char *firstline_temp = NULL;
                     firstline_temp = malloc (strlen(wordslist1));
                     strcpy (firstline_temp, wordslist1);
                     
-                    // Get serveraddr info
                     details.ai_family = AF_INET; // AF_INET means IPv4 only addresses
                     int retGetaddr = 0;
                     if ((firstline_temp[0] == '\n') || (firstline_temp[0] == ' ')) {
@@ -147,8 +129,6 @@ int doParse(int clientfd2, const char *readBuff2, int recvBytes) {
                     freeaddrinfo(detailsptr);
                 }
                 if (counter == 3) {
-                    //printf ("Secondline is: %s\n", wordslist1);
-                    //secondline = malloc (strlen(wordslist1) + 7);
                     secondline = malloc (strlen(wordslist1)+7);
                     strcpy (secondline, "PORT = ");
                     strcat (secondline, wordslist1);
@@ -159,24 +139,12 @@ int doParse(int clientfd2, const char *readBuff2, int recvBytes) {
         }
         words = strtok (NULL,delimiter);
     }
-    /* FIX IT: This piece of code need to be properly invoked before pushing any data to the server.*/  
-    //if (strlen(wordslist3) > 65535) {
-	////if (strlen(thirdline_temp) - 14 > 535) {
-    //    int sendRet5 = send(clientfd2, "URL Length > 65,535. Disconnecting the connection !!!", strlen(thirdline), 0);
-    //    printf ("URL Length > 65,535. Disconnecting the connection !!!\n");
-	//	shutdown (clientfd2, 2);
-	//}
 		
     int sendRet1, sendRet2, sendRet3;
     char stringStart[] = "";
     char stringbr1[] = "<style>body{color:black} span{color:#FF0000}</style></br>";
     char stringbr2[] = "<span></br> </br>";
     char stringEnd[] = "</span>";
-
-    //char stringStart[] = "<html><body> <p style=\"color:#FF0000\";>";
-    //char stringbr1[] = "</br>";
-    //char stringbr2[] = "</br> </br>";
-    //char stringEnd[] = "</p> </body></html>";
     sendRet1 = send(clientfd2, stringbr2, strlen(stringbr2), 0);
     if (firstline != NULL) {
         printf ("%s\n", firstline);
@@ -223,7 +191,6 @@ int doParse(int clientfd2, const char *readBuff2, int recvBytes) {
     }
     return 0;
 }
-
 
 int main (int argc, char *argv[]) {
     int i = 0; 
@@ -272,7 +239,6 @@ int main (int argc, char *argv[]) {
 
     int counter = 0;
     while(1) {
-
         int clientfd = 0;
         /* Accept the connections from the clients. */
         clientfd = accept (socketfd, (struct sockaddr*)NULL, NULL);
@@ -291,7 +257,5 @@ int main (int argc, char *argv[]) {
             printf ("Failed Parsing the received data\n");
         }
         close (clientfd); 
-        
     }
- 
 }
