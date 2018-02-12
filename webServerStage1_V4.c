@@ -114,7 +114,7 @@ int doParse(int clientfd2, const char *readBuff2, int recvBytes) {
                     if (flag != 1) {
                         for(p = detailsptr; p != NULL; p = p->ai_next) {
                             getnameinfo(p->ai_addr, p->ai_addrlen, hostIP, sizeof(hostIP), NULL, 0, NI_NUMERICHOST);
-                            printf ("%s\n",hostIP);
+                            printf ("HostIP: %s\n",hostIP);
                         }
                     }
 
