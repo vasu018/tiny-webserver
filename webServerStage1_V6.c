@@ -110,7 +110,7 @@ int doParse(int clientfd2, const char *readBuff2, int recvBytes) {
                     if (flag != 1) {
                         for(p = detailsptr; p != NULL; p = p->ai_next) {
                             getnameinfo(p->ai_addr, p->ai_addrlen, hostIP, sizeof(hostIP), NULL, 0, NI_NUMERICHOST);
-                            printf ("HostIP: %s\n",hostIP);
+                            printf ("Server IP: %s\n",hostIP);
                         }
                     }
                     firstline = malloc (strlen(wordslist1)+25);
@@ -185,10 +185,7 @@ int doParse(int clientfd2, const char *readBuff2, int recvBytes) {
             if (sendRet3 < 0) {
                 printf ("Error Sending Path: %d", sendRet3);
             }
-            free (thirdline);
-        }
-        if (thirdline_temp != NULL) {
-            free (thirdline_temp);
+            //free (thirdline);
         }
     }
     return 0;
