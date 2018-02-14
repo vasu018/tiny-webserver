@@ -212,13 +212,12 @@ int main (int argc, char *argv[]) {
 
     /* Create the Server Socket. */
     struct sockaddr_in server_sock;
-    //int socketfd = 0;
     int bindret = 0;
-    //int clientfd = 0;
 
     socketfd = socket(AF_INET, SOCK_STREAM, 0);
     if (socketfd < 0) {
         printf ("Unable to create socket (Error code): %d\n", socketfd);
+        exit (1);
     }
 
     /* Set the attributes to Server socket (port number, protocol and so on). */
