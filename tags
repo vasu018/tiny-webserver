@@ -1,0 +1,14 @@
+Mtags	tags	/^MwebServerStage1_V2	webServerStage1_V2.c	\/^int ma/
+Mtestclient	testclient.c	/^int main(int argc, char *argv[])$/
+Mtestserver	testserver.c	/^int main(int argc, char *argv[])$/
+MwebServerStage1_V2	webServerStage1_V2.c	/^int main (int argc, char *argv[]) {$/
+MwebServerStage1_V3	webServerStage1_V3.c	/^int main (int argc, char *argv[]) {$/
+MwebServerStage1_V4	webServerStage1_V4.c	/^int main (int argc, char *argv[]) {$/
+MwebServerStage1_V6	webServerStage1_V6.c	/^int main (int argc, char *argv[]) {$/
+doParse	webServerStage1.c	/^int doParse(int clientfd2, const char *readBuff2, /
+red	testserver.c	/^void red () {$/
+replaceAll	webServerStage1.c	/^void replaceAll(char * str, char oldChar, char new/
+reset	testserver.c	/^void reset () {$/
+sendSuccess200msg	webServerStage1.c	/^int sendSuccess200msg (int recvfd3) {$/
+sig_handler	testserver.c	/^void sig_handler(int signo)$/
+yellow	testserver.c	/^void yellow () {$/

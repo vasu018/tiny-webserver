@@ -17,15 +17,16 @@ int readBuffSize = 65535;
 char readBuff[65535]; 
 char readBuff2[65535]; 
 int writeBuffSize = 65535;
-char writeBuff[65535]; 
 char teamName[] = "";
 struct hostent *sDetail = 0;
 struct in_addr serveraddr;
 struct addrinfo details, *detailsptr, *p; // So no need to use memset global variables
 char hostIP[256];
-void     sig_handler(int, int);
+void     sig_handler(int);
+int socketfd = 0;
 
-void sig_handler(int signo, int socketfd)
+//void sig_handler(int signo, int socketfd)
+void sig_handler(int signo)
 {
     if (signo == SIGINT) {
         printf("Received Ctrl C to stop the Program. Terminating!!!\n");
@@ -37,37 +38,40 @@ void sig_handler(int signo, int socketfd)
 /* Send 200 Code to client if successfully processed GET request from client*/
 int sendSuccess200msg (int recvfd3) {
 
-    bzero(writeBuff, writeBuffSize);
-    sprintf(writeBuff, "HTTP/1.1 200 OK\r\n");
-    send(recvfd3, writeBuff, strlen(writeBuff), 0);
+    char writeBuff1[65535]; 
+    bzero(writeBuff1, writeBuffSize);
+    sprintf(writeBuff1, "HTTP/1.1 200 OK\r\n");
+    send(recvfd3, writeBuff1, strlen(writeBuff1), 0);
     
-    bzero(writeBuff, writeBuffSize);
-    sprintf(writeBuff, "Content-Type: text/html\r\n");
-    send(recvfd3, writeBuff, strlen(writeBuff), 0);
+    bzero(writeBuff1, writeBuffSize);
+    sprintf(writeBuff1, "Content-Type: text/html\r\n");
+    send(recvfd3, writeBuff1, strlen(writeBuff1), 0);
     
-    bzero(writeBuff, writeBuffSize);
-    strcpy(writeBuff, "\r\n");
-    send(recvfd3, writeBuff, strlen(writeBuff), 0);
+    bzero(writeBuff1, writeBuffSize);
+    strcpy(writeBuff1, "\r\n");
+    send(recvfd3, writeBuff1, strlen(writeBuff1), 0);
     return 0;  
 }
 
-int doParse(int clientfd2, const char *readBuff2, int recvBytes) {
+//int doParse(int clientfd2, const char *readBuff2, int recvBytes) {
+int doParse(int clientfd2, char *readBuff2, int recvBytes) {
 
     int successRet;
+    char writeBuff2[65535]; 
     successRet = sendSuccess200msg (clientfd2);
     if (successRet != 0 ) {
         printf ("Error in sending Success 200 code to client\n");
     }
     
-    bzero(writeBuff, writeBuffSize);
-    sprintf(writeBuff, readBuff2);
+    bzero(writeBuff2, writeBuffSize);
+    sprintf(writeBuff2, "%s", readBuff2);
     int numBytes, totalBytes;
 
     while (1) {
-        numBytes = send(clientfd2, writeBuff, strlen(writeBuff), 0);
-        printf ("%s", writeBuff);
+        numBytes = send(clientfd2, writeBuff2, strlen(writeBuff2), 0);
+        printf ("%s", writeBuff2);
         totalBytes = totalBytes + numBytes;
-        if (totalBytes >= strlen(writeBuff)) {
+        if (totalBytes >= strlen(writeBuff2)) {
             break;
         }
     }
@@ -79,7 +83,7 @@ int doParse(int clientfd2, const char *readBuff2, int recvBytes) {
     char *words;
     char delimiter[] = "\r";
     int flag = 0;
-    words = strtok (writeBuff,delimiter);
+    words = strtok (writeBuff2,delimiter);
     while (words) {
         if (strstr(words, "GET") != NULL) {
             thirdline_temp = malloc (strlen(words));
@@ -91,7 +95,7 @@ int doParse(int clientfd2, const char *readBuff2, int recvBytes) {
             wordslist1 = strtok (words, ":");
             while (wordslist1 != NULL) {
                 if (counter == 2) {
-                    const char *firstline_temp = NULL;
+                    char *firstline_temp = NULL;
                     firstline_temp = malloc (strlen(wordslist1));
                     strcpy (firstline_temp, wordslist1);
                     
@@ -103,6 +107,7 @@ int doParse(int clientfd2, const char *readBuff2, int recvBytes) {
                     else {
                         retGetaddr = getaddrinfo(firstline_temp, NULL, &details, &detailsptr);
                     }
+                    //printf ("%s\n", firstline_temp);
                     if (retGetaddr != 0) {
                         printf("Getaddrinfo: %d\n",retGetaddr);
                         flag =1;
@@ -120,13 +125,13 @@ int doParse(int clientfd2, const char *readBuff2, int recvBytes) {
                         strcat (firstline, " (");
                         strcat (firstline, hostIP);
                         strcat (firstline, ")");
+                        freeaddrinfo(detailsptr);
                     }
                     else {
                         strcat (firstline, " (");
                         strcat (firstline, "0.0.0.0");
                         strcat (firstline, ")");
                     }
-                    freeaddrinfo(detailsptr);
                 }
                 if (counter == 3) {
                     secondline = malloc (strlen(wordslist1)+7);
@@ -185,14 +190,13 @@ int doParse(int clientfd2, const char *readBuff2, int recvBytes) {
             if (sendRet3 < 0) {
                 printf ("Error Sending Path: %d", sendRet3);
             }
-            //free (thirdline);
         }
     }
     return 0;
 }
 
 int main (int argc, char *argv[]) {
-    int i = 0; 
+    int i = 0;
     if (argc < 2) {
         printf ("\n# Usage: ./stage1 <server_port_no>\n\n");
         return(0);
@@ -204,11 +208,11 @@ int main (int argc, char *argv[]) {
     } 
     
     printf("stage 1 program by (PG355) listening on port (%d)  \n", serverPort);
-    printf("\n * ### Press Ctl-C  To graciously stop the server ###\n");
+    printf("### Press Ctl-C  To graciously stop the server ###\n");
 
     /* Create the Server Socket. */
     struct sockaddr_in server_sock;
-    int socketfd = 0;
+    //int socketfd = 0;
     int bindret = 0;
     //int clientfd = 0;
 
@@ -227,13 +231,19 @@ int main (int argc, char *argv[]) {
     bindret = bind(socketfd, (struct sockaddr*)&server_sock, sizeof(server_sock));  
     if (bindret < 0) {
         printf ("Unable to bind socket (Error code): %d\n", bindret);
+        exit (1);
     }
 
     /* Listening on serverPort defined above. */
-    listen(socketfd, numConnServer); 
+    int listenret = listen(socketfd, numConnServer);
+    if (listenret < 0) {
+        printf ("Unable to listen for connections: %d\n", bindret);
+        exit (1);
+    }
+
     if (signal(SIGINT, sig_handler) == SIG_ERR) {
         printf("\nHandling CTRL C\n");
-        return -1;
+        //exit (1);
     }
 
     int counter = 0;
@@ -241,6 +251,11 @@ int main (int argc, char *argv[]) {
         int clientfd = 0;
         /* Accept the connections from the clients. */
         clientfd = accept (socketfd, (struct sockaddr*)NULL, NULL);
+        if (clientfd < 0) {
+            printf ("Error in accepting connections from client\n");
+            exit (1);
+        }
+            
         bzero(readBuff, readBuffSize);
         int n = 0;
 
@@ -253,7 +268,7 @@ int main (int argc, char *argv[]) {
         int parseRet;
         parseRet = doParse (clientfd, readBuff, n);
         if (parseRet != 0) {
-            printf ("Failed Parsing the received data\n");
+            printf ("Failed Parsing the received data from client\n");
         }
         close (clientfd); 
     }
