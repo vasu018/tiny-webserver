@@ -17,15 +17,15 @@ int readBuffSize = 65535;
 char readBuff[65535]; 
 char readBuff2[65535]; 
 int writeBuffSize = 65535;
+char writeBuff[65535]; 
 char teamName[] = "";
 struct hostent *sDetail = 0;
 struct in_addr serveraddr;
 struct addrinfo details, *detailsptr, *p; // So no need to use memset global variables
 char hostIP[256];
-void     sig_handler(int);
+void sig_handler(int);
 int socketfd = 0;
 
-//void sig_handler(int signo, int socketfd)
 void sig_handler(int signo)
 {
     if (signo == SIGINT) {
@@ -38,40 +38,37 @@ void sig_handler(int signo)
 /* Send 200 Code to client if successfully processed GET request from client*/
 int sendSuccess200msg (int recvfd3) {
 
-    char writeBuff1[65535]; 
-    bzero(writeBuff1, writeBuffSize);
-    sprintf(writeBuff1, "HTTP/1.1 200 OK\r\n");
-    send(recvfd3, writeBuff1, strlen(writeBuff1), 0);
+    bzero(writeBuff, writeBuffSize);
+    sprintf(writeBuff, "HTTP/1.1 200 OK\r\n");
+    send(recvfd3, writeBuff, strlen(writeBuff), 0);
     
-    bzero(writeBuff1, writeBuffSize);
-    sprintf(writeBuff1, "Content-Type: text/html\r\n");
-    send(recvfd3, writeBuff1, strlen(writeBuff1), 0);
+    bzero(writeBuff, writeBuffSize);
+    sprintf(writeBuff, "Content-Type: text/html\r\n");
+    send(recvfd3, writeBuff, strlen(writeBuff), 0);
     
-    bzero(writeBuff1, writeBuffSize);
-    strcpy(writeBuff1, "\r\n");
-    send(recvfd3, writeBuff1, strlen(writeBuff1), 0);
+    bzero(writeBuff, writeBuffSize);
+    strcpy(writeBuff, "\r\n");
+    send(recvfd3, writeBuff, strlen(writeBuff), 0);
     return 0;  
 }
 
-//int doParse(int clientfd2, const char *readBuff2, int recvBytes) {
-int doParse(int clientfd2, char *readBuff2, int recvBytes) {
+int doParse(int clientfd2, const char *readBuff2, int recvBytes) {
 
     int successRet;
-    char writeBuff2[65535]; 
     successRet = sendSuccess200msg (clientfd2);
     if (successRet != 0 ) {
         printf ("Error in sending Success 200 code to client\n");
     }
     
-    bzero(writeBuff2, writeBuffSize);
-    sprintf(writeBuff2, "%s", readBuff2);
+    bzero(writeBuff, writeBuffSize);
+    sprintf(writeBuff, readBuff2);
     int numBytes, totalBytes;
 
     while (1) {
-        numBytes = send(clientfd2, writeBuff2, strlen(writeBuff2), 0);
-        printf ("%s", writeBuff2);
+        numBytes = send(clientfd2, writeBuff, strlen(writeBuff), 0);
+        printf ("%s", writeBuff);
         totalBytes = totalBytes + numBytes;
-        if (totalBytes >= strlen(writeBuff2)) {
+        if (totalBytes >= strlen(writeBuff)) {
             break;
         }
     }
@@ -82,13 +79,16 @@ int doParse(int clientfd2, char *readBuff2, int recvBytes) {
     char * thirdline = NULL; /* Path */
     char *words;
     char delimiter[] = "\r";
-    int errorflag = 0;
-    words = strtok (writeBuff2,delimiter);
+    int flag = 0;
+    words = strtok (writeBuff,delimiter);
     while (words) {
         if (strstr(words, "GET") != NULL) {
             thirdline_temp = malloc (strlen(words));
             if (thirdline_temp != NULL) {
                 strcpy (thirdline_temp, words);
+            }
+            else {
+                continue;
             }
         }
         if (strstr(words, "Host:") != NULL) {
@@ -98,13 +98,14 @@ int doParse(int clientfd2, char *readBuff2, int recvBytes) {
             while (wordslist1 != NULL) {
                 if (counter == 2) {
                     char *firstline_temp = NULL;
-                    firstline_temp = malloc (strlen(wordslist1));
+                    firstline_temp = (char *) malloc(strlen(wordslist1));
                     if (firstline_temp != NULL) {
                         strcpy (firstline_temp, wordslist1);
                     }
                     else {
                         continue;
                     }
+                    
                     details.ai_family = AF_INET; // AF_INET means IPv4 only addresses
                     int retGetaddr = 0;
                     if ((firstline_temp[0] == '\n') || (firstline_temp[0] == ' ')) {
@@ -113,12 +114,11 @@ int doParse(int clientfd2, char *readBuff2, int recvBytes) {
                     else {
                         retGetaddr = getaddrinfo(firstline_temp, NULL, &details, &detailsptr);
                     }
-                    //printf ("%s\n", firstline_temp);
                     if (retGetaddr != 0) {
                         printf("Getaddrinfo: %d\n",retGetaddr);
-                        errorflag =1;
+                        flag =1;
                     }
-                    if (errorflag != 1) {
+                    if (flag != 1) {
                         for(p = detailsptr; p != NULL; p = p->ai_next) {
                             getnameinfo(p->ai_addr, p->ai_addrlen, hostIP, sizeof(hostIP), NULL, 0, NI_NUMERICHOST);
                             printf ("Server IP: %s\n",hostIP);
@@ -127,12 +127,11 @@ int doParse(int clientfd2, char *readBuff2, int recvBytes) {
                     firstline = malloc (strlen(wordslist1)+25);
                     strcpy (firstline, "HOST = ");
                     strcat (firstline, wordslist1);
-                    if (errorflag != 1) {
+                    if (flag != 1) {
                         strcat (firstline, " (");
                         strcat (firstline, hostIP);
                         strcat (firstline, ")");
                         freeaddrinfo(detailsptr);
-                        //free (firstline_temp);
                     }
                     else {
                         strcat (firstline, " (");
@@ -151,17 +150,17 @@ int doParse(int clientfd2, char *readBuff2, int recvBytes) {
         }
         words = strtok (NULL,delimiter);
     }
+		
     int sendRet1, sendRet2, sendRet3;
     char stringStart[] = "";
     char stringbr1[] = "<style>body{color:black} span{color:#FF0000}</style></br>";
     char stringbr2[] = "<span></br> </br>";
     char stringEnd[] = "</span>";
     sendRet1 = send(clientfd2, stringbr2, strlen(stringbr2), 0);
-    if (firstline != NULL ) {
+    if (firstline != NULL) {
         printf ("%s\n", firstline);
         sendRet1 = send(clientfd2, firstline, strlen(firstline), 0);
         free (firstline); 
-        //free (firstline_temp); 
     }
     if (sendRet1 < 0) {
         printf ("Error Sending Host: %d", sendRet1);
@@ -178,7 +177,7 @@ int doParse(int clientfd2, char *readBuff2, int recvBytes) {
     }
     
     sendRet3 = send(clientfd2, stringbr1, strlen(stringbr1), 0);
-    if (thirdline_temp != NULL) {
+    if (secondline != NULL) {
         int counter = 1;
         char *wordslist3;
         wordslist3 = strtok (thirdline_temp, " ");
@@ -194,18 +193,17 @@ int doParse(int clientfd2, char *readBuff2, int recvBytes) {
         if (thirdline != NULL) {
             printf ("%s\n", thirdline);
             sendRet3 = send(clientfd2, thirdline, strlen(thirdline), 0);
-            free (thirdline); 
-            //free (thirdline_temp); 
             if (sendRet3 < 0) {
                 printf ("Error Sending Path: %d", sendRet3);
             }
+            //free (thirdline);
         }
     }
     return 0;
 }
 
 int main (int argc, char *argv[]) {
-    int i = 0;
+    int i = 0; 
     if (argc < 2) {
         printf ("\n# Usage: ./stage1 <server_port_no>\n\n");
         return(0);
@@ -217,18 +215,22 @@ int main (int argc, char *argv[]) {
     } 
     
     printf("stage 1 program by (PG355) listening on port (%d)  \n", serverPort);
-    printf("### Press Ctl-C  To graciously stop the server ###\n");
+    printf("\n * ### Press Ctl-C  To graciously stop the server ###\n");
 
     /* Create the Server Socket. */
     struct sockaddr_in server_sock;
+    //int socketfd = 0;
     int bindret = 0;
+    //int clientfd = 0;
 
     socketfd = socket(AF_INET, SOCK_STREAM, 0);
     if (socketfd < 0) {
         printf ("Unable to create socket (Error code): %d\n", socketfd);
-        exit (1);
+        exit(1);
     }
-
+    int option = 1;
+    setsockopt(socketfd, SOL_SOCKET, SO_REUSEADDR, 
+         (const void *)&option , sizeof(int));
     /* Set the attributes to Server socket (port number, protocol and so on). */
     memset(&server_sock, '0', sizeof(server_sock));
     server_sock.sin_family = AF_INET;
@@ -239,19 +241,18 @@ int main (int argc, char *argv[]) {
     bindret = bind(socketfd, (struct sockaddr*)&server_sock, sizeof(server_sock));  
     if (bindret < 0) {
         printf ("Unable to bind socket (Error code): %d\n", bindret);
-        exit (1);
+        exit(1);
     }
 
     /* Listening on serverPort defined above. */
-    int listenret = listen(socketfd, numConnServer);
+    int listenret = listen(socketfd, numConnServer); 
     if (listenret < 0) {
-        printf ("Unable to listen for connections: %d\n", listenret);
-        exit (1);
+        printf ("Unable to listen socket (Error code): %d\n", listenret);
+        exit(1);
     }
-
     if (signal(SIGINT, sig_handler) == SIG_ERR) {
         printf("\nHandling CTRL C\n");
-        //exit (1);
+        return -1;
     }
 
     int counter = 0;
@@ -259,11 +260,6 @@ int main (int argc, char *argv[]) {
         int clientfd = 0;
         /* Accept the connections from the clients. */
         clientfd = accept (socketfd, (struct sockaddr*)NULL, NULL);
-        if (clientfd < 0) {
-            printf ("Error in accepting connections from client\n");
-            exit (1);
-        }
-            
         bzero(readBuff, readBuffSize);
         int n = 0;
 
@@ -276,7 +272,7 @@ int main (int argc, char *argv[]) {
         int parseRet;
         parseRet = doParse (clientfd, readBuff, n);
         if (parseRet != 0) {
-            printf ("Failed Parsing the received data from client\n");
+            printf ("Failed Parsing the received data\n");
         }
         close (clientfd); 
     }
