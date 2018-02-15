@@ -12,7 +12,7 @@
     
 int writeBuffSize = 1024;
 char writeBuff[1024];
-int serverPort = 2222;
+int serverPort = 1234;
 
 
 int main(int argc, char *argv[])
@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
     } 
     //printf ("Testing here \n");
     bzero(writeBuff, writeBuffSize);
-    sprintf(writeBuff, "GET / HTTP1/1.0 \r\n Host: test1212.or1212g\r\n ");
+    sprintf(writeBuff, "GET / HTTP1/1.0 \r\n Host: testorg:200\r\n ");
     send(sockfd, writeBuff, strlen(writeBuff), 0);
     //bzero(writeBuff, writeBuffSize);
     //sprintf(writeBuff, "GET / HTTP2/1.0 \r\n");

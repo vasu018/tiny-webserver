@@ -86,34 +86,44 @@ int doParse(int clientfd2, char *readBuff2, int recvBytes) {
     words = strtok (writeBuff2,delimiter);
     while (words) {
         if (strstr(words, "GET") != NULL) {
+            printf ("GET inside. Here inside counter 2\n");
             thirdline_temp = malloc (strlen(words));
             if (thirdline_temp != NULL) {
                 strcpy (thirdline_temp, words);
             }
         }
         if (strstr(words, "Host:") != NULL) {
+            printf ("Host inside. Here inside counter 2\n");
             int counter = 1;
             const char *wordslist1;
             wordslist1 = strtok (words, ":");
             while (wordslist1 != NULL) {
                 if (counter == 2) {
                     char *firstline_temp = NULL;
+                    printf ("Host inside. Inside while\n");
                     firstline_temp = malloc (strlen(wordslist1));
                     if (firstline_temp != NULL) {
                         strcpy (firstline_temp, wordslist1);
+                        printf ("Alloc success: \n");
                     }
                     else {
                         continue;
                     }
                     details.ai_family = AF_INET; // AF_INET means IPv4 only addresses
                     int retGetaddr = 0;
+                    printf ("Here inside counter 2: \n");
                     if ((firstline_temp[0] == '\n') || (firstline_temp[0] == ' ')) {
+                        printf ("0. Here inside counter if");
                         retGetaddr = getaddrinfo(firstline_temp+1, NULL, &details, &detailsptr);
+                        printf ("1. Here inside counter if");
                     }
                     else {
+                        printf ("0. Here inside counter else");
                         retGetaddr = getaddrinfo(firstline_temp, NULL, &details, &detailsptr);
+                        printf ("2. Here inside counter else");
                     }
                     //printf ("%s\n", firstline_temp);
+                    //retGetaddr = getaddrinfo(firstline_temp, NULL, &details, &detailsptr);
                     if (retGetaddr != 0) {
                         printf("Getaddrinfo: %d\n",retGetaddr);
                         errorflag =1;
@@ -132,7 +142,8 @@ int doParse(int clientfd2, char *readBuff2, int recvBytes) {
                         strcat (firstline, hostIP);
                         strcat (firstline, ")");
                         freeaddrinfo(detailsptr);
-                        //free (firstline_temp);
+                        printf ("Freeing firstline_temp\n");
+                        free (firstline_temp);
                     }
                     else {
                         strcat (firstline, " (");
@@ -160,6 +171,7 @@ int doParse(int clientfd2, char *readBuff2, int recvBytes) {
     if (firstline != NULL ) {
         printf ("%s\n", firstline);
         sendRet1 = send(clientfd2, firstline, strlen(firstline), 0);
+        printf ("Freeing firstline\n");
         free (firstline); 
         //free (firstline_temp); 
     }
@@ -171,6 +183,7 @@ int doParse(int clientfd2, char *readBuff2, int recvBytes) {
     if (secondline != NULL) {
         printf ("%s\n", secondline);
         sendRet2 = send(clientfd2, secondline, strlen(secondline), 0);
+        printf ("Freeing secondline\n");
         free (secondline); 
     }
     if (sendRet2 < 0) {
@@ -194,8 +207,11 @@ int doParse(int clientfd2, char *readBuff2, int recvBytes) {
         if (thirdline != NULL) {
             printf ("%s\n", thirdline);
             sendRet3 = send(clientfd2, thirdline, strlen(thirdline), 0);
+            printf ("Freeing thirdline\n");
             free (thirdline); 
+            printf ("Freeing thirdline_temp\n");
             //free (thirdline_temp); 
+            printf ("After Freeing thirdline_temp\n");
             if (sendRet3 < 0) {
                 printf ("Error Sending Path: %d", sendRet3);
             }
