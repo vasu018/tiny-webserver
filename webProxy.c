@@ -69,7 +69,7 @@ int sendSuccess200msg (int fd) {
 /* get the server details, send the request,
  * get the resposne from the server, send it back to the client
  */
-int HandleRequest(int clntfd, const char *httpBuf, int httpBufLen) 
+int doRequest(int clntfd, const char *httpBuf, int httpBufLen) 
 {
     char *pPath = NULL;
     char *pHost = NULL;
@@ -260,7 +260,7 @@ int main (int argc, char *argv[]) {
             printf("ERROR receiving data from the socket\n");
         }
 
-        if( HandleRequest (clientfd, readBuff, n) != 0 )
+        if( doRequest (clientfd, readBuff, n) != 0 )
         {
             printf ("Failed handling the request\n");
         }
