@@ -25,8 +25,8 @@ char hostIP[16];
 void sig_handler(int);
 int socketfd = 0;
 
-char *pOKMsg = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n";
-int OKMsgLen = 44;
+char *okMsg = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n";
+int okMsgLen = 44;
 
 void sig_handler(int signo)
 {
@@ -38,7 +38,7 @@ void sig_handler(int signo)
 }
 
 /* will make sure the complete request is sent until successful */
-int wsSend( int fd, const char *buf, int bufLen )
+int proxySend( int fd, const char *buf, int bufLen )
 {
     int numBytes = 0, totalBytes = 0;
     //printf ("%s\n", buf);
@@ -49,9 +49,9 @@ int wsSend( int fd, const char *buf, int bufLen )
         {
             totalBytes = totalBytes + numBytes;
             if (totalBytes >= bufLen) 
-	    {
-	        break;
-	    }
+	        {
+	            break;
+	        }
         }
         else return -1;
     }
@@ -62,7 +62,7 @@ int wsSend( int fd, const char *buf, int bufLen )
 /* Send 200 Code to client if successfully processed GET request from client*/
 int sendSuccess200msg (int fd) {
 
-    wsSend(fd, pOKMsg, OKMsgLen);
+    proxySend(fd, okMsg, okMsgLen);
     return 0;  
 }
 
@@ -93,14 +93,14 @@ int doRequest(int clntfd, const char *httpBuf, int httpBufLen)
     if( pPath )
     {
         pPath += 4;
-	pEnd = memchr( pPath, ' ', httpBufLen - (pPath - httpBuf) );
-	if( pEnd )
-	{
+	    pEnd = memchr( pPath, ' ', httpBufLen - (pPath - httpBuf) );
+	    if( pEnd )
+	    {
             memcpy( pathBuf, pPath, pEnd - pPath );
-	    remHttpBufLen = httpBufLen - (pEnd - httpBuf);
-	    pHttpBuf = pEnd;
+	        remHttpBufLen = httpBufLen - (pEnd - httpBuf);
+	        pHttpBuf = pEnd;
             //printf("PATH = %s\n", pathBuf);
-	}
+	    }
         else goto lerror;
     }
     else goto lerror;
@@ -109,30 +109,29 @@ int doRequest(int clntfd, const char *httpBuf, int httpBufLen)
     if( pHost )
     {
         pHost += 6;
-	pEnd = memchr( pHost, '\r', remHttpBufLen - (pHost - httpBuf) );
-	if( pEnd )
-	{
-	    hostLen = pEnd - pHost;
-	    memcpy( hostBuf, pHost, hostLen );
-	}
+	    pEnd = memchr( pHost, '\r', remHttpBufLen - (pHost - httpBuf) );
+	    if( pEnd )
+	    {
+	        hostLen = pEnd - pHost;
+	        memcpy( hostBuf, pHost, hostLen );
+	    }
     }
     else goto lerror;
 
     if( hostLen )
     {
         pPort = strchr( hostBuf, ':' );
-	if( pPort )
-	{
-	    strcpy( portBuf, pPort+1 );
-	    *pPort = 0;
+	    if( pPort )
+	    {
+	        strcpy( portBuf, pPort+1 );
+	        *pPort = 0;
             port = atoi(portBuf);
-	}
-                    
-	details.ai_family = AF_INET; // AF_INET means IPv4 only addresses
+	    }
+	    details.ai_family = AF_INET; // AF_INET means IPv4 only addresses
         int retGetaddr = 0;
         retGetaddr = getaddrinfo(hostBuf, NULL, &details, &detailsptr);
         if (retGetaddr == 0) 
-	{
+	    {
             p = detailsptr;              
             getnameinfo(p->ai_addr, p->ai_addrlen, hostIP, sizeof(hostIP), NULL, 0, NI_NUMERICHOST);
         }
@@ -164,7 +163,7 @@ int doRequest(int clntfd, const char *httpBuf, int httpBufLen)
             goto lerror;
         }
        
-        if( wsSend( svrfd, httpBuf, httpBufLen ) < 0 ) goto lerror;
+        if( proxySend( svrfd, httpBuf, httpBufLen ) < 0 ) goto lerror;
 
         FD_ZERO(&recvset);
         FD_SET(svrfd, &recvset);
@@ -179,14 +178,12 @@ int doRequest(int clntfd, const char *httpBuf, int httpBufLen)
             if( recvLen )
             {
                 /* send the response to the client */
-                wsSend(clntfd, readBuff, recvLen);
+                proxySend(clntfd, readBuff, recvLen);
             }
             else return 0;
         }
-
         close( svrfd );
     }
-
     return 0;
 
 lerror:
@@ -196,7 +193,7 @@ lerror:
 int main (int argc, char *argv[]) {
     int i = 0; 
     if (argc < 2) {
-        printf ("\n# Usage: ./stage1 <server_port_no>\n\n");
+        printf ("\n# Usage: ./stage2 <server_port_no>\n\n");
         return(0);
     }
     int serverPort = atoi(argv[1]);
@@ -205,7 +202,7 @@ int main (int argc, char *argv[]) {
         return(0);
     } 
     
-    printf("stage 1 program by (PG355) listening on port (%d)  \n", serverPort);
+    printf("stage 2 program by (PG355) listening on port (%d)  \n", serverPort);
     printf("\n * ### Press Ctl-C  To graciously stop the server ###\n");
 
     /* Create the Server Socket. */
