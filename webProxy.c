@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <string.h> 
 #include <unistd.h> 
 #include <stdlib.h> 
 #include <netdb.h>
@@ -9,6 +8,7 @@
 #include <signal.h>
 #include <sys/select.h>
 #include <sys/time.h>
+#include <string.h>
 
 // Global Variables
 int lport = 1025;
@@ -25,6 +25,9 @@ char hostIP[16];
 void sig_handler(int);
 int socketfd = 0;
 
+/* Blacklisted domains: Enter list of blacklisted domains to be blacklisted domains/IPs (witout www)*/
+char *blacklistIPs[] = {"cplusplus.com", "edsmart.org", "192.168.100.1"};
+
 char *okMsg = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n";
 int okMsgLen = 44;
 
@@ -38,39 +41,33 @@ void sig_handler(int signo)
 }
 
 /* will make sure the complete request is sent until successful */
-int proxySend( int fd, const char *buf, int bufLen )
+int sendReq(int fd, const char *buf, int bufLen)
 {
     int numBytes = 0, totalBytes = 0;
     //printf ("%s\n", buf);
 
-    while (1) 
-    {
-        if( (numBytes = send(fd, buf+totalBytes, bufLen-totalBytes, 0)) >= 0 )
-        {
+    while (1) {
+        if((numBytes = send(fd, buf+totalBytes, bufLen-totalBytes, 0)) >= 0) {
             totalBytes = totalBytes + numBytes;
-            if (totalBytes >= bufLen) 
-	        {
+            if (totalBytes >= bufLen) {
 	            break;
 	        }
         }
         else return -1;
     }
-
     return totalBytes;
 }
 
 /* Send 200 Code to client if successfully processed GET request from client*/
 int sendSuccess200msg (int fd) {
-
-    proxySend(fd, okMsg, okMsgLen);
+    sendReq(fd, okMsg, okMsgLen);
     return 0;  
 }
 
 /* get the server details, send the request,
  * get the resposne from the server, send it back to the client
  */
-int doRequest(int clntfd, const char *httpBuf, int httpBufLen) 
-{
+int doRequest(int clntfd, const char *httpBuf, int httpBufLen) {
     char *pPath = NULL;
     char *pHost = NULL;
     char *pPort = NULL;
@@ -87,83 +84,112 @@ int doRequest(int clntfd, const char *httpBuf, int httpBufLen)
     struct sockaddr_in serv_addr;
     fd_set recvset;
     struct timeval timeout;
+    char *hostSub = NULL;
 
     /* as of now handles only GET request */
-    pPath = memmem( httpBuf, 4, "GET ", 4 );
-    if( pPath )
+    pPath = memmem(httpBuf, 4, "GET ", 4);
+    if(pPath)
     {
         pPath += 4;
-	    pEnd = memchr( pPath, ' ', httpBufLen - (pPath - httpBuf) );
-	    if( pEnd )
+	    pEnd = memchr(pPath, ' ', httpBufLen - (pPath - httpBuf));
+	    if(pEnd)
 	    {
-            memcpy( pathBuf, pPath, pEnd - pPath );
+            memcpy(pathBuf, pPath, pEnd - pPath);
 	        remHttpBufLen = httpBufLen - (pEnd - httpBuf);
 	        pHttpBuf = pEnd;
             //printf("PATH = %s\n", pathBuf);
 	    }
         else goto lerror;
+        printf ("First stage of the code (Extracting Path)\n");
     }
     else goto lerror;
+    printf ("Second stage of the code (After path extraction)\n");
 
-    pHost = memmem( pHttpBuf, remHttpBufLen, "Host: ", 6 );
-    if( pHost )
-    {
+    pHost = memmem(pHttpBuf, remHttpBufLen, "Host: ", 6);
+    if(pHost) {
         pHost += 6;
-	    pEnd = memchr( pHost, '\r', remHttpBufLen - (pHost - httpBuf) );
-	    if( pEnd )
-	    {
+	    pEnd = memchr(pHost, '\r', remHttpBufLen - (pHost - httpBuf));
+	    if(pEnd) {
 	        hostLen = pEnd - pHost;
-	        memcpy( hostBuf, pHost, hostLen );
+	        memcpy(hostBuf, pHost, hostLen);
+            //printf ("Poorni hostBuf is: %s\n", hostBuf);
+            int ret = strncmp(hostBuf, "www.", 4);
+            int flag = 0;
+            if(ret == 0) {
+                hostSub = (char *) malloc(sizeof(char) * strlen(hostBuf -4) + 1);
+                hostSub = strndup(hostBuf+4, strlen(hostBuf));
+            }
+            else {
+                hostSub = (char *) malloc(sizeof(char) * strlen(hostBuf) + 1);
+                strcpy(hostSub, hostBuf);
+            }
+            for (int index = 0; index < sizeof(blacklistIPs)/sizeof(blacklistIPs[0]) ; index++) {
+                //printf ("Blacklisted IPs are: %s\n", blacklistIPs[index]);
+                int retCmp = strcmp(hostSub, blacklistIPs[index]);
+                if (retCmp == 0) {
+                    printf ("Domain is Blacklisted: %s\n", hostBuf);
+                    int sendRet1, sendRet2, sendRet3;
+                    //char stringbr[] = "<style>body{color:black} span{color:#FF0000}</style></br> <span></br></br></span>";
+                    //send(clntfd, stringbr, strlen(stringbr), 0);
+                    char stringbr1[] = "<style>body{color:black} span{color:#FF0000}</style></br>";
+                    char stringbr2[] = "<span></br> </br>";
+                    char stringEnd[] = "</span>";
+                    send(clntfd, stringbr1, strlen(stringbr1), 0);
+                    send(clntfd, stringbr2, strlen(stringbr2), 0);
+                    send(clntfd, stringEnd, strlen(stringEnd), 0);
+                    char firstline [] = "Accessed Denied to this site. Contact Admin: admin@njit.edu";
+                    send(clntfd, firstline, strlen(firstline), 0);
+                    free (hostSub);
+                    close (clntfd);
+                    return 0;
+                }
+            }
 	    }
     }
     else goto lerror;
+    printf ("Third stage of the code (Black list identified or proceeding to talk to server.)\n");
 
-    if( hostLen )
-    {
-        pPort = strchr( hostBuf, ':' );
-	    if( pPort )
-	    {
-	        strcpy( portBuf, pPort+1 );
+    if(hostLen) {
+        pPort = strchr(hostBuf, ':');
+	    if(pPort) {
+	        strcpy(portBuf, pPort+1);
 	        *pPort = 0;
             port = atoi(portBuf);
 	    }
 	    details.ai_family = AF_INET; // AF_INET means IPv4 only addresses
         int retGetaddr = 0;
         retGetaddr = getaddrinfo(hostBuf, NULL, &details, &detailsptr);
-        if (retGetaddr == 0) 
-	    {
+        if (retGetaddr == 0) {
             p = detailsptr;              
             getnameinfo(p->ai_addr, p->ai_addrlen, hostIP, sizeof(hostIP), NULL, 0, NI_NUMERICHOST);
         }
-        else
-        {
-            if( strlen(hostBuf) > sizeof(hostIP) ) goto lerror;
+        else {
+            if(strlen(hostBuf) > sizeof(hostIP)) goto lerror;
             strcpy(hostIP, hostBuf);
         }
 
-        printf("Connecting to Host = %s with IP = %s and Port = %d\n", hostBuf, hostIP, port);
+        printf("Connecting to Server = %s with IP = %s and Port = %d\n", hostBuf, hostIP, port);
 
-        if ((svrfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-        {
+        if ((svrfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
             printf("Socket creation error \n");
             goto lerror;
         }
+        printf ("Fourth stage of the code (Socket to connect to Server)\n");
 
         memset(&serv_addr, '0', sizeof(serv_addr));
-
         serv_addr.sin_family = AF_INET;
         serv_addr.sin_port = htons(port);
 
         /* exit if not a valid IP */
-        if( inet_pton(AF_INET, hostIP, &serv_addr.sin_addr) <= 0 ) goto lerror;
+        if(inet_pton(AF_INET, hostIP, &serv_addr.sin_addr) <= 0) goto lerror;
 
-        if (connect(svrfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
-        {
+        if (connect(svrfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
             printf("Connection to server Failed \n");
             goto lerror;
         }
-       
-        if( proxySend( svrfd, httpBuf, httpBufLen ) < 0 ) goto lerror;
+        printf ("Fifth stage of the code (Connect to server)\n");
+        if(sendReq(svrfd, httpBuf, httpBufLen) < 0) goto lerror;
+        printf ("Fifth 2 stage of the code (Req sent to server)\n");
 
         FD_ZERO(&recvset);
         FD_SET(svrfd, &recvset);
@@ -171,19 +197,23 @@ int doRequest(int clntfd, const char *httpBuf, int httpBufLen)
         timeout.tv_usec = 0;
 
         /* don't wait for more than 2 sec for a response from the server */
-        while( select(svrfd + 1, &recvset, NULL, NULL, &timeout) )
-        {
+        while(select(svrfd + 1, &recvset, NULL, NULL, &timeout)) {
             /* get the response from the server */
             recvLen = recv(svrfd, &readBuff, buffSize, 0);
-            if( recvLen )
-            {
+            printf ("Fifth (3) stage of the code (Received Data from server)\n");
+            if(recvLen) {
                 /* send the response to the client */
-                proxySend(clntfd, readBuff, recvLen);
+                printf ("Fifth (4) stage of the code (Sending Data to client)\n");
+                if (sendReq(clntfd, readBuff, recvLen) < 0) goto lerror;
+                printf ("Fifth (5) stage of the code (Sent Data to client)\n");
             }
             else return 0;
         }
-        close( svrfd );
+        printf ("Sixth stage of the code (Recv complete from server)\n");
+        close(svrfd);
     }
+    printf ("Seventh stage of the code (Finished)\n");
+    close (clntfd);
     return 0;
 
 lerror:
@@ -257,13 +287,11 @@ int main (int argc, char *argv[]) {
             printf("ERROR receiving data from the socket\n");
         }
 
-        if( doRequest (clientfd, readBuff, n) != 0 )
-        {
+        if(doRequest (clientfd, readBuff, n) != 0) {
             printf ("Failed handling the request\n");
         }
-
+        printf ("Eight stage (Closing client fd)");
         close (clientfd); 
     }
-
     return 0;
 }
