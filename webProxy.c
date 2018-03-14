@@ -26,26 +26,27 @@ void sig_handler(int);
 int socketfd = 0;
 
 /* Blacklisted domains: Enter list of blacklisted domains to be blacklisted domains/IPs (witout www)*/
-char *blacklistIPs[] = {"cplusplus.com", "edsmart.org", "192.168.100.1"};
+char *blacklists[] = {"cplusplus.com", "edsmart.org", "192.168.100.1", "198.204.255.114", "njit.edu"};
+char *blacklistsIPs[100];
 
 char *okMsg = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n";
 int okMsgLen = 44;
 
-void sig_handler(int signo)
-{
+void sig_handler(int signo) {
     if (signo == SIGINT) {
         printf("Received Ctrl C to stop the Program. Terminating!!!\n");
+        printf("Cleaning up memory space allocated for blacklist IP addresses\n");
+        for (int index1 = 0; index1 < sizeof(blacklists)/sizeof(blacklists[0]) ; index1++) {
+            free(blacklistsIPs[index1]);
+        }
         shutdown (socketfd, 2);
         exit (0);
     }
 }
 
 /* will make sure the complete request is sent until successful */
-int sendReq(int fd, const char *buf, int bufLen)
-{
+int sendReq(int fd, const char *buf, int bufLen) {
     int numBytes = 0, totalBytes = 0;
-    //printf ("%s\n", buf);
-
     while (1) {
         if((numBytes = send(fd, buf+totalBytes, bufLen-totalBytes, 0)) >= 0) {
             totalBytes = totalBytes + numBytes;
@@ -58,15 +59,71 @@ int sendReq(int fd, const char *buf, int bufLen)
     return totalBytes;
 }
 
-/* Send 200 Code to client if successfully processed GET request from client*/
+/* Send 200 Code to client if successfully processed GET request from client */
 int sendSuccess200msg (int fd) {
     sendReq(fd, okMsg, okMsgLen);
     return 0;  
 }
 
-/* get the server details, send the request,
- * get the resposne from the server, send it back to the client
- */
+int sendAccessDenied (int clientntfd, const char *hostName) {
+    printf ("Domain is Blacklisted: %s\n", hostName);
+    char firstline [] = "Accessed Denied to this site. Contact Admin: admin@njit.edu";
+    send(clientntfd, firstline, strlen(firstline), 0);
+    return 0;
+}
+
+int isBlacklist (int clientfd2, const char *hostName1) {
+    for (int index = 0; index < sizeof(blacklists)/sizeof(blacklists[0]) ; index++) {
+        int retCmp = strcmp(hostName1, blacklists[index]);
+        if (retCmp == 0) {
+            int ret = sendAccessDenied (clientfd2, hostName1);
+            if (ret == 0) {
+                return 0;
+            }
+        }
+    }
+    return -1;
+}
+
+int isBlacklistIP (int clientfd2, const char *hostIP1) {
+    for (int index = 0; index < sizeof(blacklists)/sizeof(blacklists[0]) ; index++) {
+        int retCmp = strcmp(hostIP1, blacklistsIPs[index]);
+        if (retCmp == 0) {
+            int ret = sendAccessDenied (clientfd2, hostIP1);
+            if (ret == 0) {
+                return 0;
+            }
+        }
+    }
+    return -1;
+}
+
+int extractDomainIPs () {
+    for (int index = 0; index < sizeof(blacklists)/sizeof(blacklists[0]) ; index++) {
+        details.ai_family = AF_INET; // AF_INET means IPv4 only addresses
+        int retGetaddr = 0;
+        retGetaddr = getaddrinfo(blacklists[index], NULL, NULL, &detailsptr);
+        if (retGetaddr == 0) {
+            p = detailsptr;              
+            getnameinfo(p->ai_addr, p->ai_addrlen, hostIP, sizeof(hostIP), NULL, 0, NI_NUMERICHOST);
+        }
+        else {
+            if(strlen(blacklists[index]) > sizeof(hostIP)) goto lerror;
+            strcpy(hostIP, blacklists[index]);
+        }
+        char *ip = NULL;
+        ip = (char *) malloc(16);
+        strcpy (ip, hostIP);
+        blacklistsIPs[index] = ip;
+        freeaddrinfo(detailsptr);
+    }
+    return 0;
+
+lerror:
+    return -1;
+}
+
+/* Get the server details, send the request, get the resposne from the server, send it back to the client */
 int doRequest(int clntfd, const char *httpBuf, int httpBufLen) {
     char *pPath = NULL;
     char *pHost = NULL;
@@ -86,18 +143,15 @@ int doRequest(int clntfd, const char *httpBuf, int httpBufLen) {
     struct timeval timeout;
     char *hostSub = NULL;
 
-    /* as of now handles only GET request */
+    /* Handle GET request */
     pPath = memmem(httpBuf, 4, "GET ", 4);
-    if(pPath)
-    {
+    if(pPath) {
         pPath += 4;
 	    pEnd = memchr(pPath, ' ', httpBufLen - (pPath - httpBuf));
-	    if(pEnd)
-	    {
+	    if(pEnd) {
             memcpy(pathBuf, pPath, pEnd - pPath);
 	        remHttpBufLen = httpBufLen - (pEnd - httpBuf);
 	        pHttpBuf = pEnd;
-            //printf("PATH = %s\n", pathBuf);
 	    }
         else goto lerror;
         printf ("First stage of the code (Extracting Path)\n");
@@ -112,10 +166,8 @@ int doRequest(int clntfd, const char *httpBuf, int httpBufLen) {
 	    if(pEnd) {
 	        hostLen = pEnd - pHost;
 	        memcpy(hostBuf, pHost, hostLen);
-            //printf ("Poorni hostBuf is: %s\n", hostBuf);
-            int ret = strncmp(hostBuf, "www.", 4);
-            int flag = 0;
-            if(ret == 0) {
+            int ret1 = strncmp(hostBuf, "www.", 4);
+            if(ret1 == 0) {
                 hostSub = (char *) malloc(sizeof(char) * strlen(hostBuf -4) + 1);
                 hostSub = strndup(hostBuf+4, strlen(hostBuf));
             }
@@ -123,27 +175,12 @@ int doRequest(int clntfd, const char *httpBuf, int httpBufLen) {
                 hostSub = (char *) malloc(sizeof(char) * strlen(hostBuf) + 1);
                 strcpy(hostSub, hostBuf);
             }
-            for (int index = 0; index < sizeof(blacklistIPs)/sizeof(blacklistIPs[0]) ; index++) {
-                //printf ("Blacklisted IPs are: %s\n", blacklistIPs[index]);
-                int retCmp = strcmp(hostSub, blacklistIPs[index]);
-                if (retCmp == 0) {
-                    printf ("Domain is Blacklisted: %s\n", hostBuf);
-                    int sendRet1, sendRet2, sendRet3;
-                    //char stringbr[] = "<style>body{color:black} span{color:#FF0000}</style></br> <span></br></br></span>";
-                    //send(clntfd, stringbr, strlen(stringbr), 0);
-                    char stringbr1[] = "<style>body{color:black} span{color:#FF0000}</style></br>";
-                    char stringbr2[] = "<span></br> </br>";
-                    char stringEnd[] = "</span>";
-                    send(clntfd, stringbr1, strlen(stringbr1), 0);
-                    send(clntfd, stringbr2, strlen(stringbr2), 0);
-                    send(clntfd, stringEnd, strlen(stringEnd), 0);
-                    char firstline [] = "Accessed Denied to this site. Contact Admin: admin@njit.edu";
-                    send(clntfd, firstline, strlen(firstline), 0);
-                    free (hostSub);
-                    close (clntfd);
-                    return 0;
-                }
-            }
+            //int ret2 = isBlacklist (clntfd, hostSub);
+            //if (ret2 == 0) {
+            //    free (hostSub);
+            //    close (clntfd);
+            //    return 0;
+            //}
 	    }
     }
     else goto lerror;
@@ -158,7 +195,8 @@ int doRequest(int clntfd, const char *httpBuf, int httpBufLen) {
 	    }
 	    details.ai_family = AF_INET; // AF_INET means IPv4 only addresses
         int retGetaddr = 0;
-        retGetaddr = getaddrinfo(hostBuf, NULL, &details, &detailsptr);
+        //retGetaddr = getaddrinfo(hostBuf, NULL, &details, &detailsptr);
+        retGetaddr = getaddrinfo(hostBuf, NULL, NULL, &detailsptr);
         if (retGetaddr == 0) {
             p = detailsptr;              
             getnameinfo(p->ai_addr, p->ai_addrlen, hostIP, sizeof(hostIP), NULL, 0, NI_NUMERICHOST);
@@ -167,8 +205,15 @@ int doRequest(int clntfd, const char *httpBuf, int httpBufLen) {
             if(strlen(hostBuf) > sizeof(hostIP)) goto lerror;
             strcpy(hostIP, hostBuf);
         }
-
         printf("Connecting to Server = %s with IP = %s and Port = %d\n", hostBuf, hostIP, port);
+            
+        int ret = isBlacklistIP (clntfd, hostIP);
+        if (ret == 0) {
+            free (hostSub);
+            close (clntfd);
+            return 0;
+        }
+        free (hostSub);
 
         if ((svrfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
             printf("Socket creation error \n");
@@ -193,7 +238,7 @@ int doRequest(int clntfd, const char *httpBuf, int httpBufLen) {
 
         FD_ZERO(&recvset);
         FD_SET(svrfd, &recvset);
-        timeout.tv_sec  = 2;
+        timeout.tv_sec  = 2; 
         timeout.tv_usec = 0;
 
         /* don't wait for more than 2 sec for a response from the server */
@@ -235,11 +280,14 @@ int main (int argc, char *argv[]) {
     printf("stage 2 program by (PG355) listening on port (%d)  \n", serverPort);
     printf("\n * ### Press Ctl-C  To graciously stop the server ###\n");
 
+    extractDomainIPs();
+    //for (int index1 = 0; index1 < sizeof(blacklists)/sizeof(blacklists[0]) ; index1++) {
+    //    printf ("Black list IP is: %d, %s \n", index1, blacklistsIPs[index1]);
+    //}
+
     /* Create the Server Socket. */
     struct sockaddr_in server_sock;
-    //int socketfd = 0;
     int bindret = 0;
-    //int clientfd = 0;
 
     socketfd = socket(AF_INET, SOCK_STREAM, 0);
     if (socketfd < 0) {
