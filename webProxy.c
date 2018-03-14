@@ -154,10 +154,10 @@ int doRequest(int clntfd, const char *httpBuf, int httpBufLen) {
 	        pHttpBuf = pEnd;
 	    }
         else goto lerror;
-        printf ("First stage of the code (Extracting Path)\n");
+        //printf ("First stage of the code (Extracting Path)\n");
     }
     else goto lerror;
-    printf ("Second stage of the code (After path extraction)\n");
+    //printf ("Second stage of the code (After path extraction)\n");
 
     pHost = memmem(pHttpBuf, remHttpBufLen, "Host: ", 6);
     if(pHost) {
@@ -184,7 +184,7 @@ int doRequest(int clntfd, const char *httpBuf, int httpBufLen) {
 	    }
     }
     else goto lerror;
-    printf ("Third stage of the code (Black list identified or proceeding to talk to server.)\n");
+    //printf ("Third stage of the code (Black list identified or proceeding to talk to server.)\n");
 
     if(hostLen) {
         pPort = strchr(hostBuf, ':');
@@ -205,7 +205,6 @@ int doRequest(int clntfd, const char *httpBuf, int httpBufLen) {
             if(strlen(hostBuf) > sizeof(hostIP)) goto lerror;
             strcpy(hostIP, hostBuf);
         }
-        printf("Connecting to Server = %s with IP = %s and Port = %d\n", hostBuf, hostIP, port);
             
         int ret = isBlacklistIP (clntfd, hostIP);
         if (ret == 0) {
@@ -214,12 +213,13 @@ int doRequest(int clntfd, const char *httpBuf, int httpBufLen) {
             return 0;
         }
         free (hostSub);
+        printf("Connecting to Server = %s with IP = %s and Port = %d\n", hostBuf, hostIP, port);
 
         if ((svrfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
             printf("Socket creation error \n");
             goto lerror;
         }
-        printf ("Fourth stage of the code (Socket to connect to Server)\n");
+        //printf ("Fourth stage of the code (Socket to connect to Server)\n");
 
         memset(&serv_addr, '0', sizeof(serv_addr));
         serv_addr.sin_family = AF_INET;
@@ -232,9 +232,9 @@ int doRequest(int clntfd, const char *httpBuf, int httpBufLen) {
             printf("Connection to server Failed \n");
             goto lerror;
         }
-        printf ("Fifth stage of the code (Connect to server)\n");
+        //printf ("Fifth stage of the code (Connect to server)\n");
         if(sendReq(svrfd, httpBuf, httpBufLen) < 0) goto lerror;
-        printf ("Fifth 2 stage of the code (Req sent to server)\n");
+        //printf ("Fifth 2 stage of the code (Req sent to server)\n");
 
         FD_ZERO(&recvset);
         FD_SET(svrfd, &recvset);
@@ -245,19 +245,19 @@ int doRequest(int clntfd, const char *httpBuf, int httpBufLen) {
         while(select(svrfd + 1, &recvset, NULL, NULL, &timeout)) {
             /* get the response from the server */
             recvLen = recv(svrfd, &readBuff, buffSize, 0);
-            printf ("Fifth (3) stage of the code (Received Data from server)\n");
+            //printf ("Fifth (3) stage of the code (Received Data from server)\n");
             if(recvLen) {
                 /* send the response to the client */
-                printf ("Fifth (4) stage of the code (Sending Data to client)\n");
+                //printf ("Fifth (4) stage of the code (Sending Data to client)\n");
                 if (sendReq(clntfd, readBuff, recvLen) < 0) goto lerror;
-                printf ("Fifth (5) stage of the code (Sent Data to client)\n");
+                //printf ("Fifth (5) stage of the code (Sent Data to client)\n");
             }
             else return 0;
         }
-        printf ("Sixth stage of the code (Recv complete from server)\n");
+        //printf ("Sixth stage of the code (Recv complete from server)\n");
         close(svrfd);
     }
-    printf ("Seventh stage of the code (Finished)\n");
+    //printf ("Seventh stage of the code (Finished)\n");
     close (clntfd);
     return 0;
 
@@ -338,7 +338,7 @@ int main (int argc, char *argv[]) {
         if(doRequest (clientfd, readBuff, n) != 0) {
             printf ("Failed handling the request\n");
         }
-        printf ("Eight stage (Closing client fd)");
+        //printf ("Eight stage (Closing client fd)");
         close (clientfd); 
     }
     return 0;
