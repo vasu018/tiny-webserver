@@ -36,7 +36,8 @@ void sig_handler(int signo) {
     if (signo == SIGINT) {
         printf("Received Ctrl C to stop the Program. Terminating!!!\n");
         printf("Cleaning up memory space allocated for blacklist IP addresses\n");
-        for (int index1 = 0; index1 < sizeof(blacklists)/sizeof(blacklists[0]) ; index1++) {
+        int index1 = 0;
+        for (index1 = 0; index1 < sizeof(blacklists)/sizeof(blacklists[0]) ; index1++) {
             free(blacklistsIPs[index1]);
         }
         shutdown (socketfd, 2);
@@ -73,7 +74,8 @@ int sendAccessDenied (int clientntfd, const char *hostName) {
 }
 
 int isBlacklist (int clientfd2, const char *hostName1) {
-    for (int index = 0; index < sizeof(blacklists)/sizeof(blacklists[0]) ; index++) {
+    int index = 0;
+    for (index = 0; index < sizeof(blacklists)/sizeof(blacklists[0]) ; index++) {
         int retCmp = strcmp(hostName1, blacklists[index]);
         if (retCmp == 0) {
             int ret = sendAccessDenied (clientfd2, hostName1);
@@ -86,7 +88,8 @@ int isBlacklist (int clientfd2, const char *hostName1) {
 }
 
 int isBlacklistIP (int clientfd2, const char *hostIP1) {
-    for (int index = 0; index < sizeof(blacklists)/sizeof(blacklists[0]) ; index++) {
+    int index = 0;
+    for (index = 0; index < sizeof(blacklists)/sizeof(blacklists[0]) ; index++) {
         int retCmp = strcmp(hostIP1, blacklistsIPs[index]);
         if (retCmp == 0) {
             int ret = sendAccessDenied (clientfd2, hostIP1);
@@ -99,7 +102,8 @@ int isBlacklistIP (int clientfd2, const char *hostIP1) {
 }
 
 int extractDomainIPs () {
-    for (int index = 0; index < sizeof(blacklists)/sizeof(blacklists[0]) ; index++) {
+    int index = 0;
+    for (index = 0; index < sizeof(blacklists)/sizeof(blacklists[0]) ; index++) {
         details.ai_family = AF_INET; // AF_INET means IPv4 only addresses
         int retGetaddr = 0;
         retGetaddr = getaddrinfo(blacklists[index], NULL, NULL, &detailsptr);
