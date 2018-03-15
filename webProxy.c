@@ -74,19 +74,19 @@ int sendAccessDenied (int clientntfd, const char *hostName) {
     return 0;
 }
 
-int isBlacklist (int clientfd2, const char *hostName1) {
-    int index = 0;
-    for (index = 0; index < sizeof(blacklists)/sizeof(blacklists[0]) ; index++) {
-        int retCmp = strcmp(hostName1, blacklists[index]);
-        if (retCmp == 0) {
-            int ret = sendAccessDenied (clientfd2, hostName1);
-            if (ret == 0) {
-                return 0;
-            }
-        }
-    }
-    return -1;
-}
+//int isBlacklist (int clientfd2, const char *hostName1) {
+//    int index = 0;
+//    for (index = 0; index < sizeof(blacklists)/sizeof(blacklists[0]) ; index++) {
+//        int retCmp = strcmp(hostName1, blacklists[index]);
+//        if (retCmp == 0) {
+//            int ret = sendAccessDenied (clientfd2, hostName1);
+//            if (ret == 0) {
+//                return 0;
+//            }
+//        }
+//    }
+//    return -1;
+//}
 
 int isBlacklistIP (int clientfd2, const char *hostIP1) {
     int index = 0;
