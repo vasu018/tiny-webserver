@@ -10,6 +10,8 @@
 #include <sys/select.h>
 #include <sys/time.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/un.h>
 
 // Global Variables
 int lport = 1025;
@@ -36,7 +38,7 @@ int okMsgLen = 44;
 void sig_handler(int signo) {
     if (signo == SIGINT) {
         printf("Received Ctrl C to stop the Program. Terminating!!!\n");
-        printf("Cleaning up memory space allocated for blacklist IP addresses\n");
+        //printf("Cleaning up memory space allocated for blacklist IP addresses\n");
         int index1 = 0;
         for (index1 = 0; index1 < sizeof(blacklists)/sizeof(blacklists[0]) ; index1++) {
             free(blacklistsIPs[index1]);
@@ -212,7 +214,7 @@ int doRequest(int clntfd, const char *httpBuf, int httpBufLen) {
             printf("Connection to server Failed \n");
             goto lerror;
         }
-        if(sendReq(svrfd, httpBuf, httpBufLen) < 0) goto lerror;
+        if(sendReq(svrfd, httpBuf, httpBufLen) < 0) goto lerror2;
 
         FD_ZERO(&recvset);
         FD_SET(svrfd, &recvset);
@@ -236,6 +238,8 @@ int doRequest(int clntfd, const char *httpBuf, int httpBufLen) {
 
 lerror:
     return -1;
+lerror2:
+    return -2;
 }
 
 int main (int argc, char *argv[]) {
@@ -253,7 +257,10 @@ int main (int argc, char *argv[]) {
     printf("stage 2 program by (PG355) listening on port (%d)  \n", serverPort);
     printf("\n * ### Press Ctl-C  To graciously stop the server ###\n");
 
-    extractDomainIPs();
+    int retIPs = extractDomainIPs();
+    if (retIPs != 0) {
+        printf ("Failed to resolve the configured domains to IPs\n");
+    }
     /* Create the Server Socket. */
     struct sockaddr_in server_sock;
     int bindret = 0;
@@ -297,15 +304,18 @@ int main (int argc, char *argv[]) {
         clientfd = accept (socketfd, (struct sockaddr*)NULL, NULL);
         bzero(readBuff, buffSize);
         int n = 0;
-
+        
+        int set = 1;
+        setsockopt(clientfd, SOL_SOCKET, SO_NOSIGPIPE, (void *)&set, sizeof(int));
         /* Receive the data from clients. */
         n = recv(clientfd, &readBuff, buffSize, 0);
         if (n < 0) {
             printf("ERROR receiving data from the socket\n");
         }
-
-        if(doRequest (clientfd, readBuff, n) != 0) {
-            printf ("Failed handling the request\n");
+        int retErr;
+        retErr = doRequest (clientfd, readBuff, n);
+        if (retErr == -2) { 
+            printf ("doRequest: Error sending request to server failed\n");
         }
         close (clientfd); 
     }
