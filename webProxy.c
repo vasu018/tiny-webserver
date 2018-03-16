@@ -28,6 +28,7 @@ char hostIP[16];
 void sig_handler(int);
 int socketfd = 0;
 
+
 /* Blacklisted domains: Enter list of blacklisted domains to be blacklisted domains/IPs (witout www)*/
 char *blacklists[] = {"cplusplus.com", "edsmart.org", "192.168.100.1", "198.204.255.114", "njit.edu"};
 char *blacklistsIPs[100];
@@ -52,7 +53,8 @@ void sig_handler(int signo) {
 int sendReq(int fd, const char *buf, int bufLen) {
     int numBytes = 0, totalBytes = 0;
     while (1) {
-        if((numBytes = send(fd, buf+totalBytes, bufLen-totalBytes, 0)) >= 0) {
+        //if((numBytes = send(fd, buf+totalBytes, bufLen-totalBytes, 0)) >= 0) {
+        if((numBytes = send(fd, buf+totalBytes, bufLen-totalBytes, MSG_NOSIGNAL)) >= 0) {
             totalBytes = totalBytes + numBytes;
             if (totalBytes >= bufLen) {
 	            break;
@@ -271,8 +273,7 @@ int main (int argc, char *argv[]) {
         exit(1);
     }
     int option = 1;
-    setsockopt(socketfd, SOL_SOCKET, SO_REUSEADDR, 
-         (const void *)&option , sizeof(int));
+    //setsockopt(socketfd, SOL_SOCKET, SO_REUSEADDR, (const void *)&option , sizeof(int));
     /* Set the attributes to Server socket (port number, protocol and so on). */
     memset(&server_sock, '0', sizeof(server_sock));
     server_sock.sin_family = AF_INET;
@@ -296,6 +297,10 @@ int main (int argc, char *argv[]) {
         printf("\nHandling CTRL C\n");
         return -1;
     }
+    //if ( signal(SIGPIPE, SIG_IGN)) {
+    if (signal(SIGINT, sig_handler) == SIG_IGN) {
+        printf("\nDiscarding the other signals\n");
+    }
 
     int counter = 0;
     while(1) {
@@ -306,7 +311,7 @@ int main (int argc, char *argv[]) {
         int n = 0;
         
         int set = 1;
-        setsockopt(clientfd, SOL_SOCKET, SO_NOSIGPIPE, (void *)&set, sizeof(int));
+        //setsockopt(clientfd, SOL_SOCKET, SO_NOSIGPIPE, (void *)&set, sizeof(int));
         /* Receive the data from clients. */
         n = recv(clientfd, &readBuff, buffSize, 0);
         if (n < 0) {
