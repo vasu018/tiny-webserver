@@ -39,7 +39,6 @@ int okMsgLen = 44;
 void sig_handler(int signo) {
     if (signo == SIGINT) {
         printf("Received Ctrl C to stop the Program. Terminating!!!\n");
-        //printf("Cleaning up memory space allocated for blacklist IP addresses\n");
         int index1 = 0;
         for (index1 = 0; index1 < sizeof(blacklists)/sizeof(blacklists[0]) ; index1++) {
             free(blacklistsIPs[index1]);
@@ -53,7 +52,6 @@ void sig_handler(int signo) {
 int sendReq(int fd, const char *buf, int bufLen) {
     int numBytes = 0, totalBytes = 0;
     while (1) {
-        //if((numBytes = send(fd, buf+totalBytes, bufLen-totalBytes, 0)) >= 0) {
         if((numBytes = send(fd, buf+totalBytes, bufLen-totalBytes, MSG_NOSIGNAL)) >= 0) {
             totalBytes = totalBytes + numBytes;
             if (totalBytes >= bufLen) {
@@ -273,7 +271,6 @@ int main (int argc, char *argv[]) {
         exit(1);
     }
     int option = 1;
-    //setsockopt(socketfd, SOL_SOCKET, SO_REUSEADDR, (const void *)&option , sizeof(int));
     /* Set the attributes to Server socket (port number, protocol and so on). */
     memset(&server_sock, '0', sizeof(server_sock));
     server_sock.sin_family = AF_INET;
@@ -297,7 +294,6 @@ int main (int argc, char *argv[]) {
         printf("\nHandling CTRL C\n");
         return -1;
     }
-    //if ( signal(SIGPIPE, SIG_IGN)) {
     if (signal(SIGINT, sig_handler) == SIG_IGN) {
         printf("\nDiscarding the other signals\n");
     }
@@ -311,7 +307,6 @@ int main (int argc, char *argv[]) {
         int n = 0;
         
         int set = 1;
-        //setsockopt(clientfd, SOL_SOCKET, SO_NOSIGPIPE, (void *)&set, sizeof(int));
         /* Receive the data from clients. */
         n = recv(clientfd, &readBuff, buffSize, 0);
         if (n < 0) {
