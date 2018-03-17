@@ -284,7 +284,8 @@ int main (int argc, char *argv[]) {
         printf ("Unable to create socket (Error code): %d\n", socketfd);
         exit(1);
     }
-    int option = 1;
+    //int option = 1;
+    //setsockopt(socketfd, SOL_SOCKET, SO_REUSEADDR, (const void *)&option , sizeof(int));
     /* Set the attributes to Server socket (port number, protocol and so on). */
     memset(&server_sock, '0', sizeof(server_sock));
     server_sock.sin_family = AF_INET;
