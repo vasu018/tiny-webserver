@@ -20,24 +20,16 @@ int serverPort;
 int numConnServer = 27;
 int buffSize = 65535;
 char readBuff[65536]; 
-char writeBuff[65536]; 
-struct hostent *sDetail = 0;
-struct in_addr serveraddr;
 struct addrinfo details, *detailsptr, *p; // So no need to use memset global variables
 char hostIP[16];
-void sig_handler(int);
 int socketfd = 0;
-char * lPtr = NULL;
-char bDomainLine[512];
-size_t lLength = 0;
-int lineLenRet;
 int domainCount = 0;
 int dLength = 512;
 char *blacklists[1000];
 char *blacklistsIPs[1000];
-
 char *okMsg = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n";
 int okMsgLen = 44;
+void sig_handler(int);
 
 void sig_handler(int signo) {
     if (signo == SIGINT) {
@@ -45,6 +37,7 @@ void sig_handler(int signo) {
         int index1 = 0;
         for (index1 = 0; index1 < domainCount ; index1++) {
             free(blacklistsIPs[index1]);
+            free(blacklists[index1]);
         }
         shutdown (socketfd, 2);
         exit (0);
@@ -73,7 +66,7 @@ int sendSuccess200msg (int fd) {
 }
 
 int sendAccessDenied (int clientntfd, const char *hostName) {
-    printf ("Domain is Blacklisted: %s\n", hostName);
+    printf ("Accessed Domain is Blacklisted: %s\n", hostName);
     char firstline [] = "Accessed Denied to this site. Contact Admin: admin@njit.edu";
     send(clientntfd, firstline, strlen(firstline), 0);
     return 0;
@@ -250,8 +243,7 @@ int main (int argc, char *argv[]) {
     int i = 0; 
     if (argc < 3) {
         printf ("\n# Usage: ./stage2 <file_path> <server_port_no>\n");
-        printf ("Example: ./stage2 ./blacklist.txt 2222\n");
-        printf ("Example: ./stage2 /home/pg355/blacklist.txt 2222\n");
+        printf ("Example: ./stage2 blacklist.txt 2222\n");
         return(0);
     }
     int serverPort = atoi(argv[2]);
@@ -271,6 +263,7 @@ int main (int argc, char *argv[]) {
     while (fgets(blacklists[domainCount], dLength , FP)) {
         if (strlen(blacklists[domainCount]) > 3 && blacklists[domainCount][0] != '#' && blacklists[domainCount][0] != '/') {
             blacklists[domainCount][strlen(blacklists[domainCount])-1] = '\0';
+            printf ("%s\n", blacklists[domainCount]);
             domainCount ++;
             blacklists[domainCount] = (char *) malloc (dLength);
         }
@@ -280,7 +273,7 @@ int main (int argc, char *argv[]) {
     printf("stage 2 program by (PG355) listening on port (%d)  \n", serverPort);
     printf("\n * ### Press Ctl-C  To graciously stop the server ###\n");
 
-    /* Extract the domain names and maintain its equivalent IP addresses */
+    /* Extract the domain names and maintain their IP addresses */
     extractDomainIPs();
     /* Create the Server Socket. */
     struct sockaddr_in server_sock;
