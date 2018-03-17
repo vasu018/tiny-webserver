@@ -1,0 +1,11 @@
+# testing comments
+// testing slash working
+www.cplusplus.com
+edsmart.org
+192.168.100.1
+198.204.255.114
+njit.edu
+1.2.2.1
+mysite.com
+man.org
+

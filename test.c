@@ -9,13 +9,16 @@ int main(void)
     size_t len = 0;
     ssize_t read;
 
-    fp = fopen("", "r");
+    fp = fopen("./inputfile.txt", "r");
     if (fp == NULL)
         exit(EXIT_FAILURE);
 
     while ((read = getline(&line, &len, fp)) != -1) {
-        printf("Retrieved line of length %zu :\n", read);
-        printf("%s", line);
+        printf ("%c\n", *line);
+        if (read > 3 && (*line != '#' || *line != '/')) {
+            printf("Retrieved line of length %zu :\n", read);
+            printf("%s", line);
+        }
     }
 
     fclose(fp);

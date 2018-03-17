@@ -33,6 +33,8 @@ size_t lLength = 0;
 int lineLenRet;
 int domainCount = 0;
 int dLength = 512;
+/* Blacklisted domains: Enter list of blacklisted domains to be blacklisted domains/IPs (witout www)*/
+//char *blacklists[] = {"www.cplusplus.com", "edsmart.org", "192.168.100.1", "198.204.255.114", "njit.edu"};
 char *blacklists[1000];
 char *blacklistsIPs[1000];
 
@@ -43,6 +45,7 @@ void sig_handler(int signo) {
     if (signo == SIGINT) {
         printf("Received Ctrl C to stop the Program. Terminating!!!\n");
         int index1 = 0;
+        //for (index1 = 0; index1 < sizeof(blacklists)/sizeof(blacklists[0]) ; index1++) {
         for (index1 = 0; index1 < domainCount ; index1++) {
             free(blacklistsIPs[index1]);
         }
@@ -55,7 +58,8 @@ void sig_handler(int signo) {
 int sendReq(int fd, const char *buf, int bufLen) {
     int numBytes = 0, totalBytes = 0;
     while (1) {
-        if((numBytes = send(fd, buf+totalBytes, bufLen-totalBytes, MSG_NOSIGNAL)) >= 0) {
+        //if((numBytes = send(fd, buf+totalBytes, bufLen-totalBytes, MSG_NOSIGNAL)) >= 0) {
+        if((numBytes = send(fd, buf+totalBytes, bufLen-totalBytes, 0)) >= 0) {
             totalBytes = totalBytes + numBytes;
             if (totalBytes >= bufLen) {
 	            break;
@@ -81,7 +85,9 @@ int sendAccessDenied (int clientntfd, const char *hostName) {
 
 int isBlacklistIP (int clientfd2, const char *hostIP1) {
     int index = 0;
+    //for (index = 0; index < sizeof(blacklists)/sizeof(blacklists[0]) ; index++) {
     for (index = 0; index < domainCount ; index++) {
+        printf ("Comparing the blacklist: %s, %s\n", hostIP1, blacklistsIPs[index]);
         int retCmp = strcmp(hostIP1, blacklistsIPs[index]);
         if (retCmp == 0) {
             int ret = sendAccessDenied (clientfd2, hostIP1);
@@ -95,15 +101,15 @@ int isBlacklistIP (int clientfd2, const char *hostIP1) {
 
 int extractDomainIPs () {
     int index = 0;
+    //for (index = 0; index < sizeof(blacklists)/sizeof(blacklists[0]) ; index++) {
     for (index = 0; index < domainCount ; index++) {
         details.ai_family = AF_INET; // AF_INET means IPv4 only addresses
         int retGetaddr = 0;
-        int flag = 0;
+        printf ("2. Comparing the blacklist: %d %s...\n", domainCount, blacklists[index]);
         retGetaddr = getaddrinfo(blacklists[index], NULL, NULL, &detailsptr);
         if (retGetaddr == 0) {
             p = detailsptr;              
             getnameinfo(p->ai_addr, p->ai_addrlen, hostIP, sizeof(hostIP), NULL, 0, NI_NUMERICHOST);
-            freeaddrinfo(detailsptr);
         }
         else {
             if(strlen(blacklists[index]) > sizeof(hostIP)) goto lerror2;
@@ -113,6 +119,7 @@ int extractDomainIPs () {
         ip = (char *) malloc(16);
         strcpy (ip, hostIP);
         blacklistsIPs[index] = ip;
+        freeaddrinfo(detailsptr);
     }
     return 0;
 
@@ -266,22 +273,41 @@ int main (int argc, char *argv[]) {
         exit (1);        
     }
     
+    //while(fgets(bDomainLine, sizeof bDomainLine, FP)!=NULL) {
+    //    if (lineLenRet > 3 && (*lPtr != '#' && *lPtr != '/')) {
+    //        printf("%s\n", bDomainLine);
+    //        blacklists[index]=bDomainLine;
+    //        index++;
+    //    }
+    //}
+    
     printf ("# Blacklisted Domains are:\n");
     blacklists[domainCount] = (char *) malloc (dLength);
     while (fgets(blacklists[domainCount], dLength , FP)) {
-        if (strlen(blacklists[domainCount]) > 3 && blacklists[domainCount][0] != '#' && blacklists[domainCount][0] != '/') {
-            blacklists[domainCount][strlen(blacklists[domainCount])-1] = '\0';
-            domainCount ++;
-            blacklists[domainCount] = (char *) malloc (dLength);
+    //while ((lineLenRet = getline(&lPtr, &lLength, FP)) != -1) {
+        //if (sizeof(blacklists[domainCount]) > 3 && (*lPtr != '#' && *lPtr != '/')) {
+        blacklists[domainCount][strlen(blacklists[domainCount])-1] = '\0';
+        printf ("Strlen: %lu", strlen(blacklists[domainCount]));
+        if (blacklists[domainCount][0] != '#' && blacklists[domainCount][0] != '/') {
+            printf("Line: %s\n", blacklists[domainCount]);
         }
+        domainCount ++;
+        blacklists[domainCount] = (char *) malloc (dLength);
     }
     fclose(FP);
+    int j;
+    for (j = 0; j< domainCount ; j++) {
+        printf ("BD: %s\n", blacklists[j]);
+        //printf ("BI: %s\n", blacklistsIPs[domainCount]);
+    }
 
     printf("stage 2 program by (PG355) listening on port (%d)  \n", serverPort);
     printf("\n * ### Press Ctl-C  To graciously stop the server ###\n");
 
-    /* Extract the domain names and maintain its equivalent IP addresses */
-    extractDomainIPs();
+    int retIPs = extractDomainIPs();
+    if (retIPs != 0) {
+        printf ("Failed to resolve few malformed domains to IPs\n");
+    }
     /* Create the Server Socket. */
     struct sockaddr_in server_sock;
     int bindret = 0;
@@ -313,7 +339,6 @@ int main (int argc, char *argv[]) {
     }
     if (signal(SIGINT, sig_handler) == SIG_ERR) {
         printf("\nHandling CTRL C\n");
-        shutdown (socketfd, 2);
         return -1;
     }
     if (signal(SIGINT, sig_handler) == SIG_IGN) {
