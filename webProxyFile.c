@@ -79,7 +79,7 @@ int sendAccessDenied (int clientntfd, const char *hostName) {
     return 0;
 }
 
-int isBlacklistIP (int clientfd2, const char *hostIP1) {
+int isBlacklistIPDeny (int clientfd2, const char *hostIP1) {
     int index = 0;
     for (index = 0; index < domainCount ; index++) {
         int retCmp = strcmp(hostIP1, blacklistsIPs[index]);
@@ -193,7 +193,7 @@ int doRequest(int clntfd, const char *httpBuf, int httpBufLen) {
             strcpy(hostIP, hostBuf);
         }
             
-        int ret = isBlacklistIP (clntfd, hostIP);
+        int ret = isBlacklistIPDeny (clntfd, hostIP);
         if (ret == 0) {
             free (hostSub);
             close (clntfd);
