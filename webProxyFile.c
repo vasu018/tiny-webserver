@@ -65,19 +65,19 @@ int sendSuccess200msg (int fd) {
     return 0;  
 }
 
-int sendAccessDenied (int clientntfd, const char *hostName) {
-    printf ("Accessed Domain is Blacklisted: %s\n", hostName);
+int sendAccessDenied (int clientntfd, const char *hostIP2, const char *tDomainName) {
+    printf ("Accessed Domain is Blacklisted: %s (%s)\n", tDomainName, hostIP2);
     char firstline [] = "Accessed Denied to this site. Contact Admin: admin@njit.edu";
     send(clientntfd, firstline, strlen(firstline), 0);
     return 0;
 }
 
-int isBlacklistIPDeny (int clientfd2, const char *hostIP1) {
+int isBlacklistIPDeny (int clientfd2, const char *hostIP1, const char *domainName) {
     int index = 0;
     for (index = 0; index < domainCount ; index++) {
         int retCmp = strcmp(hostIP1, blacklistsIPs[index]);
         if (retCmp == 0) {
-            int ret = sendAccessDenied (clientfd2, hostIP1);
+            int ret = sendAccessDenied (clientfd2, hostIP1, domainName);
             if (ret == 0) {
                 return 0;
             }
@@ -186,7 +186,7 @@ int doRequest(int clntfd, const char *httpBuf, int httpBufLen) {
             strcpy(hostIP, hostBuf);
         }
             
-        int ret = isBlacklistIPDeny (clntfd, hostIP);
+        int ret = isBlacklistIPDeny (clntfd, hostIP, hostBuf);
         if (ret == 0) {
             free (hostSub);
             close (clntfd);
