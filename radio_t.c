@@ -51,7 +51,6 @@ int main(int argc, char *argv[])
     serverInfo.sin_family = AF_INET;
     serverInfo.sin_port = htons(atoi(argv[2]));
     serverInfo.sin_addr.s_addr = inet_addr(argv [1]);
-    //serverInfo.sin_addr.s_addr=htonl(argv [1]);
   
     if (argc >= 5 && argv[4]) {
         packetLength = atoi(argv[4]);
@@ -61,7 +60,6 @@ int main(int argc, char *argv[])
         }
     }
     if (argc >= 6 && argv[5]) {
-        //printf ("Arg 5 is %s, count: %d", argv[5], argc);
         burstSize = atoi(argv[5]);
         if (burstSize < 1 || burstSize > 100) {
             printf("# Error in burstSize value (use values between 0 to 100)\n");
@@ -86,13 +84,11 @@ int main(int argc, char *argv[])
             iter = 1;
             usleep (burstInterval);
         }
-        //printf ("iter size is: %d\n", iter);
         int numBytes = 0, totalBytes = 0;
         numBytes = sendto(sock, buff+totalBytes, bufferLength-totalBytes, 0, (struct sockaddr*)&serverInfo, sizeof(serverInfo));
         if  (numBytes >= 0) {
             totalBytes = totalBytes + numBytes;
             if (totalBytes >= sizeof (buff)) {
-                //printf ("Breaking the loop\n");
                 break;
             }
         }
