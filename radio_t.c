@@ -21,6 +21,7 @@ int main(int argc, char *argv[])
     int ret_b;
     int lport = 1025;
     int uport = 65535;
+    //[TODO]: Change the buffer length to packet size
     int bufferLength = 512; /* Default = 512 */
     int burstSize = 1; /* Default = 1 */
     long burstInterval = 0; /* Default in microseconds */
