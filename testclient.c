@@ -9,10 +9,10 @@
 #include <errno.h>
 #include <arpa/inet.h> 
     
-    
 int writeBuffSize = 1024;
 char writeBuff[1024];
-int serverPort = 1234;
+int serverPort = 2222;
+
 
 
 int main(int argc, char *argv[])
@@ -20,6 +20,7 @@ int main(int argc, char *argv[])
     int sockfd = 0, n = 0;
     char recvBuff[1024];
     struct sockaddr_in serv_addr; 
+
 
     if(argc != 2)
     {
@@ -57,7 +58,7 @@ int main(int argc, char *argv[])
     //bzero(writeBuff, writeBuffSize);
     //sprintf(writeBuff, "GET / HTTP2/1.0 \r\n");
     //send(sockfd, writeBuff, strlen(writeBuff), 0);
-
+    printf ("Clientfd is: %d\n", sockfd);
     while ( (n = read(sockfd, recvBuff, sizeof(recvBuff)-1)) > 0)
     {
         recvBuff[n] = 0;

@@ -48,7 +48,8 @@ void sig_handler(int signo) {
 int sendReq(int fd, const char *buf, int bufLen) {
     int numBytes = 0, totalBytes = 0;
     while (1) {
-        if((numBytes = send(fd, buf+totalBytes, bufLen-totalBytes, MSG_NOSIGNAL)) >= 0) {
+        //if((numBytes = send(fd, buf+totalBytes, bufLen-totalBytes, MSG_NOSIGNAL)) >= 0) {
+        if((numBytes = send(fd, buf+totalBytes, bufLen-totalBytes, 0)) >= 0) {
             totalBytes = totalBytes + numBytes;
             if (totalBytes >= bufLen) {
 	            break;
@@ -167,6 +168,7 @@ int doRequest(int clntfd, const char *httpBuf, int httpBufLen) {
     }
     else goto lerror;
 
+    printf(" hostlen (%d) buffer below ---\n%s\n---\n", hostLen, httpBuf);
     if(hostLen) {
         pPort = strchr(hostBuf, ':');
 	    if(pPort) {
@@ -317,9 +319,12 @@ int main (int argc, char *argv[]) {
     int counter = 0;
     while(1) {
         int clientfd = 0;
+        printf ("Vasu\n");
         /* Accept the connections from the clients. */
         clientfd = accept (socketfd, (struct sockaddr*)NULL, NULL);
+        printf ("Clientfd is:%d\n", clientfd);
         bzero(readBuff, buffSize);
+        printf ("Poornima\n");
         int n = 0;
         
         int set = 1;

@@ -52,7 +52,8 @@ void sig_handler(int signo) {
 int sendReq(int fd, const char *buf, int bufLen) {
     int numBytes = 0, totalBytes = 0;
     while (1) {
-        if((numBytes = send(fd, buf+totalBytes, bufLen-totalBytes, MSG_NOSIGNAL)) >= 0) {
+        //if((numBytes = send(fd, buf+totalBytes, bufLen-totalBytes, MSG_NOSIGNAL)) >= 0) {
+        if((numBytes = send(fd, buf+totalBytes, bufLen-totalBytes, 0)) >= 0) {
             totalBytes = totalBytes + numBytes;
             if (totalBytes >= bufLen) {
 	            break;
