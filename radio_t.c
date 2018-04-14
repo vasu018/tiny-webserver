@@ -13,6 +13,13 @@
 
 #define MAX_BUFF_SIZE 65535 // Changing buffer value for each test
 
+int print_usage () {
+    printf ("\n# Usage: ./udp host port filename [packetLength] [burstSize] [burstInterval (in USec)]\n");
+    printf ("# Examples: 1. ./udp host port filename\n");
+    printf ("#           2. ./udp host port filename 512 1 1\n");
+    exit(1);
+}
+
 int main(int argc, char *argv[])
 {
     int sock, length;
@@ -21,17 +28,12 @@ int main(int argc, char *argv[])
     int ret_b;
     int lport = 1025;
     int uport = 65535;
-    //[TODO]: Change the buffer length to packet size
-    int bufferLength = 512; /* Default = 512 */
+    int packetLength = 1400; /* Default = 512 */
     int burstSize = 1; /* Default = 1 */
     long burstInterval = 0; /* Default in microseconds */
 
     if (argc < 4) {
-        printf ("\n# Usage: ./udp host port filename [bufferLength] [burstSize] [burstIntervalin_USec]\n");
-        printf ("\n# Examples: 1. ./udp host port filename\n");
-        printf ("#           2. ./udp host port filename 512 none 1\n");
-        //printf ("Example: ./stage2 blacklist.txt 2222\n");
-        return(0);
+        print_usage();
     }
     int serverPort = atoi(argv[2]);
     if (serverPort < lport || serverPort > uport) {
@@ -41,7 +43,7 @@ int main(int argc, char *argv[])
     
     sock = socket(AF_INET, SOCK_DGRAM, 0);
     if (sock < 0) {
-        printf("Error in creating a socket");
+        printf("# Error in creating a socket");
         exit(-1);
     }
 
@@ -51,34 +53,40 @@ int main(int argc, char *argv[])
     serverInfo.sin_addr.s_addr = inet_addr(argv [1]);
     //serverInfo.sin_addr.s_addr=htonl(argv [1]);
   
-    if (argv[4]) {
-        bufferLength = atoi(argv[4]);
+    if (argc >= 5 && argv[4]) {
+        packetLength = atoi(argv[4]);
+        if (packetLength < 128 && packetLength > 9000) {
+            printf("# Error in burstSize value (use values between 128 and 9000)\n");
+            exit(-1);
+        }
     }
-    if (argv[5]) {
+    if (argc >= 6 && argv[5]) {
+        //printf ("Arg 5 is %s, count: %d", argv[5], argc);
         burstSize = atoi(argv[5]);
+        if (burstSize < 1 || burstSize > 100) {
+            printf("# Error in burstSize value (use values between 0 to 100)\n");
+            exit(-1);
+        }
     }
-    if (argv[6]) {
+    if (argc == 7 && argv[6]) {
         burstInterval = atoi(argv[6]);
-    }
-    if (burstSize < 1 || burstSize > 100) {
-        printf("Error in burstSize value (use values between 0 to 100)\n");
-        exit(-1);
     }
     
     FILE *FP = fopen(argv[3], "rb");
     if (FP == NULL) {
-        printf ("Error reading the blacklist input file %s\n", argv[3]);
-        exit (1);
+        printf ("# Error reading the media input file %s\n", argv[3]);
+        print_usage();
     }
 
     printf("Forwarding media: %s to %s\n", argv[3], argv[1]);
     int iter = 1;
+    int bufferLength = packetLength-28;
     while (fread (&buff, bufferLength, 1, FP) == 1) {
         if (iter > burstSize) {
             iter = 1;
             usleep (burstInterval);
         }
-        printf ("iter size is: %d\n", iter);
+        //printf ("iter size is: %d\n", iter);
         int numBytes = 0, totalBytes = 0;
         numBytes = sendto(sock, buff+totalBytes, bufferLength-totalBytes, 0, (struct sockaddr*)&serverInfo, sizeof(serverInfo));
         if  (numBytes >= 0) {
@@ -87,8 +95,8 @@ int main(int argc, char *argv[])
                 //printf ("Breaking the loop\n");
                 break;
             }
-            printf(".");
         }
+        printf(".");
         iter ++;
     }
     printf ("\n");
