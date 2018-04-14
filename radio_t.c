@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -21,11 +22,11 @@ int main(int argc, char *argv[])
     int lport = 1025;
     int uport = 65535;
     int bufferLength = 512; /* Default = 512 */
-    int jitter = 0; /* Default = 1 */
-    int burstInterval = 0; /* Default in microseconds */
+    int burstSize = 1; /* Default = 1 */
+    long burstInterval = 0; /* Default in microseconds */
 
     if (argc < 4) {
-        printf ("\n# Usage: ./udp host port filename [bufferLength] [jitter] [burstInterval]\n");
+        printf ("\n# Usage: ./udp host port filename [bufferLength] [burstSize] [burstIntervalin_USec]\n");
         printf ("\n# Examples: 1. ./udp host port filename\n");
         printf ("#           2. ./udp host port filename 512 none 1\n");
         //printf ("Example: ./stage2 blacklist.txt 2222\n");
@@ -52,38 +53,44 @@ int main(int argc, char *argv[])
     if (argv[4]) {
         bufferLength = atoi(argv[4]);
     }
-    printf ("Coming till here\n");
     if (argv[5]) {
-        jitter = atoi(argv[5]);
+        burstSize = atoi(argv[5]);
     }
     if (argv[6]) {
         burstInterval = atoi(argv[6]);
     }
-    if (jitter < 0 || jitter > 10) {
-        printf("Error in jitter value (use values between 0 to 9)\n");
+    if (burstSize < 1 || burstSize > 100) {
+        printf("Error in burstSize value (use values between 0 to 100)\n");
         exit(-1);
     }
-    printf ("Coming till here\n");
     
     FILE *FP = fopen(argv[3], "rb");
     if (FP == NULL) {
         printf ("Error reading the blacklist input file %s\n", argv[3]);
         exit (1);
     }
-    printf ("Coming till here\n");
 
     printf("Forwarding media: %s to %s\n", argv[3], argv[1]);
-    //while (fread (&buff, MAX_BUFF_SIZE, 1 , FP) == 1) {
-    while (fread (&buff, bufferLength, 1 , FP) == 1) {
-	    int len = 0;
-        len = sendto(sock, buff, bufferLength, 0 , (struct sockaddr*)&serverInfo, sizeof(serverInfo));
-        //printf("Data sent of len: %d\n", len);
-        printf(".");
-        usleep (burstInterval);
+    int iter = 1;
+    while (fread (&buff, bufferLength, 1, FP) == 1) {
+        if (iter > burstSize) {
+            iter = 1;
+            usleep (burstInterval);
+        }
+        printf ("iter size is: %d\n", iter);
+        int numBytes = 0, totalBytes = 0;
+        numBytes = sendto(sock, buff+totalBytes, bufferLength-totalBytes, 0, (struct sockaddr*)&serverInfo, sizeof(serverInfo));
+        if  (numBytes >= 0) {
+            totalBytes = totalBytes + numBytes;
+            if (totalBytes >= sizeof (buff)) {
+                //printf ("Breaking the loop\n");
+                break;
+            }
+            printf(".");
+        }
+        iter ++;
     }
     printf ("\n");
-
-    //fclose(fpointer);
-    //close(sock);
-    return(0);
+    fclose(FP);
+    close(sock);
 }
