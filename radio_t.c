@@ -11,7 +11,7 @@
 #include <errno.h>
 #include <arpa/inet.h>
 
-#define MAX_BUFF_SIZE 65535 // Changing buffer value for each test
+#define MAX_BUFF_SIZE 65535
 
 int print_usage () {
     printf ("\n# Usage: ./udp host port filename [packetLength] [burstSize] [burstInterval (in USec)]\n");
