@@ -1,5 +1,0 @@
-multiple =0;
-
-while (read (serverfd, :q)) {
-
-}
